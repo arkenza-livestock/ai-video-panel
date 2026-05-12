@@ -1,3 +1,4 @@
+cat > /app/main.py << 'EOF'
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
@@ -10,7 +11,7 @@ from celery import Celery
 # FastAPI uygulamasını başlat
 app = FastAPI(title="Atmosfer Stüdyo API", description="Video otomasyon sistemi")
 
-# CORS ayarları (frontend'in erişmesi için)
+# CORS ayarları
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -139,3 +140,4 @@ def list_all_jobs():
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8000)
+EOF
