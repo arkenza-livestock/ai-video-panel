@@ -4,7 +4,7 @@ services:
   backend:
     build: ./backend
     ports:
-      - "8000:8000"
+      - "8001:8000"    # Dışarıdan 8001'e yönlendir
     environment:
       - REDIS_URL=redis://redis:6379/0
       - DEBUG=true
@@ -38,9 +38,9 @@ services:
   frontend:
     build: ./frontend
     ports:
-      - "3008:3008"
+      - "3008:3000"
     environment:
-      - REACT_APP_API_URL=http://localhost:8000
+      - REACT_APP_API_URL=http://localhost:8001    # Backend portu 8001 oldu
     depends_on:
       - backend
 
