@@ -5,6 +5,7 @@ from typing import Optional
 import uuid
 import json
 import os
+from celery import Celery
 
 # FastAPI uygulamasını başlat
 app = FastAPI(title="Atmosfer Stüdyo API", description="Video otomasyon sistemi")
@@ -18,22 +19,29 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Redis bağlantısı (Celery için)
+celery_app = Celery(
+    "video_worker",
+    broker="redis://redis:6379/0",
+    backend="redis://redis:6379/0"
+)
+
 # Klasör yapısını oluştur
 os.makedirs("temp", exist_ok=True)
 os.makedirs("output", exist_ok=True)
 
-# Video işlerini tutacağımız basit bir liste (geçici, ileride Redis kullanacağız)
+# Video işlerini tutacağımız basit bir liste
 jobs_db = {}
 
 # --- Veri Modelleri ---
 class VideoJob(BaseModel):
-    format: str  # "sleep", "book", "journey"
+    format: str
     title: str
     story_text: str
     duration_hours: int = 3
     music_type: str = "piano"
     rain_intensity: str = "medium"
-    sound_frequency: str = "normal"  # sayfa çevirme sıklığı vb.
+    sound_frequency: str = "normal"
 
 class JobResponse(BaseModel):
     job_id: str
@@ -48,7 +56,6 @@ def root():
 
 @app.get("/formats")
 def get_formats():
-    """Kullanılabilecek formatları listele"""
     return {
         "formats": [
             {
@@ -77,11 +84,11 @@ def get_formats():
 
 @app.post("/create-job", response_model=JobResponse)
 def create_job(job: VideoJob):
-    """Yeni video oluşturma işi başlat"""
+    """Yeni video oluşturma işi başlat - Celery'ye gönder"""
     job_id = str(uuid.uuid4())
     
     # İş bilgilerini kaydet
-    jobs_db[job_id] = {
+    job_data = {
         "status": "queued",
         "format": job.format,
         "title": job.title,
@@ -92,9 +99,19 @@ def create_job(job: VideoJob):
         "created_at": str(__import__("datetime").datetime.now())
     }
     
-    # JSON dosyasına da kaydet (geçici depolama)
+    jobs_db[job_id] = job_data
+    
+    # JSON dosyasına kaydet
     with open(f"temp/{job_id}.json", "w") as f:
-        json.dump(jobs_db[job_id], f, indent=2)
+        json.dump(job_data, f, indent=2)
+    
+    # Celery'ye video oluşturma görevi gönder
+    celery_app.send_task("create_video", args=[job_id, {
+        "format": job.format,
+        "duration_hours": job.duration_hours,
+        "music_type": job.music_type,
+        "rain_intensity": job.rain_intensity
+    }])
     
     return JobResponse(
         job_id=job_id,
@@ -106,7 +123,6 @@ def create_job(job: VideoJob):
 def get_job_status(job_id: str):
     """İşin durumunu sorgula"""
     if job_id not in jobs_db:
-        # JSON'dan da kontrol et
         if os.path.exists(f"temp/{job_id}.json"):
             with open(f"temp/{job_id}.json", "r") as f:
                 job_data = json.load(f)
