@@ -1,13 +1,13 @@
 version: '3.8'
 
 services:
-  # Backend API
   backend:
     build: ./backend
     ports:
       - "8000:8000"
     environment:
       - REDIS_URL=redis://redis:6379/0
+      - DEBUG=true
     depends_on:
       - redis
     volumes:
@@ -16,7 +16,6 @@ services:
       - ./temp:/temp
     command: uvicorn main:app --host 0.0.0.0 --port 8000 --reload
 
-  # Worker (video oluşturucu)
   worker:
     build: ./backend
     environment:
@@ -29,7 +28,6 @@ services:
       - ./temp:/temp
     command: celery -A video_worker worker --loglevel=info
 
-  # Redis (kuyruk sistemi)
   redis:
     image: redis:7-alpine
     ports:
@@ -37,15 +35,14 @@ services:
     volumes:
       - redis_data:/data
 
-  # Frontend (React)
   frontend:
     build: ./frontend
     ports:
-      - "3000:3000"
-    depends_on:
-      - backend
+      - "3008:3008"
     environment:
       - REACT_APP_API_URL=http://localhost:8000
+    depends_on:
+      - backend
 
 volumes:
   redis_data:
