@@ -1,33 +1,6 @@
 version: '3.8'
 
 services:
-  redis:
-    image: redis:7-alpine
-    container_name: redis
-    ports:
-      - "6379:6379"
-    networks:
-      - net
-    restart: unless-stopped
-
-  backend:
-    image: python:3.11-slim
-    container_name: backend
-    working_dir: /app
-    command: python main.py
-    ports:
-      - "8000:8000"
-    environment:
-      - REDIS_URL=redis://redis:6379/0
-    depends_on:
-      - redis
-    volumes:
-      - ./backend:/app
-      - ./output:/app/output
-    networks:
-      - net
-    restart: unless-stopped
-
   frontend:
     build:
       context: ./frontend
@@ -37,8 +10,6 @@ services:
       - "3000:3000"
     environment:
       - REACT_APP_API_URL=http://localhost:8000
-    depends_on:
-      - backend
     networks:
       - net
     restart: unless-stopped
