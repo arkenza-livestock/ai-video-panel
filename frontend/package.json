@@ -1,14 +1,22 @@
 {
-  "name": "atmosfer-pro-frontend",
+  "name": "atmosfer-studio-pro",
   "version": "2.0.0",
-  "description": "Profesyonel Video Editor - Timeline Editing, Effects, Asset Management",
   "private": true,
   "dependencies": {
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
-    "axios": "^1.6.8",
     "react-scripts": "5.0.1",
-    "framer-motion": "^10.16.16"
+    "axios": "^1.6.0",
+    "react-player": "^2.13.0",
+    "wavesurfer.js": "^7.4.0",
+    "framer-motion": "^10.16.0",
+    "react-icons": "^4.11.0",
+    "react-dropzone": "^14.2.3",
+    "react-color": "^2.19.3",
+    "react-dnd": "^16.0.1",
+    "react-dnd-html5-backend": "^16.0.1",
+    "@ffmpeg/ffmpeg": "^0.12.0",
+    "@ffmpeg/util": "^0.12.0"
   },
   "scripts": {
     "start": "react-scripts start",
@@ -23,9 +31,5 @@
     "production": [">0.2%", "not dead", "not op_mini all"],
     "development": ["last 1 chrome version", "last 1 firefox version", "last 1 safari version"]
   },
-  "proxy": "http://localhost:8000",
-  "devDependencies": {
-    "@testing-library/react": "^13.4.0",
-    "@testing-library/jest-dom": "^5.16.5"
-  }
+  "proxy": "http://localhost:8000"
 }
