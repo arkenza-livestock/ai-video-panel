@@ -3,13 +3,16 @@ version: '3.8'
 services:
   redis:
     image: redis:7-alpine
+    container_name: redis
     ports:
       - "6379:6379"
     networks:
       - net
+    restart: unless-stopped
 
   backend:
     image: python:3.11-slim
+    container_name: backend
     working_dir: /app
     command: python main.py
     ports:
@@ -23,11 +26,13 @@ services:
       - ./output:/app/output
     networks:
       - net
+    restart: unless-stopped
 
   frontend:
     build:
       context: ./frontend
       dockerfile: Dockerfile
+    container_name: frontend
     ports:
       - "3000:3000"
     environment:
@@ -36,8 +41,8 @@ services:
       - backend
     networks:
       - net
+    restart: unless-stopped
 
 networks:
   net:
-
-# Updated: 2026-05-13 10:25 UTC - Fresh deploy trigger
+    driver: bridge
