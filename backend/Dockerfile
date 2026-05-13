@@ -1,28 +1,22 @@
-FROM node:18-alpine as build
+FROM python:3.11-slim
 
 WORKDIR /app
 
-# package.json kopyala
-COPY package*.json ./
+# Sistem bağımlılıkları
+RUN apt-get update && apt-get install -y \
+    ffmpeg \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
 
-# npm ci yerine npm install kullan (package-lock.json yoksa)
-RUN npm install
+# Gereksinimleri yükle
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
 
-# Kaynak kodları kopyala
+# Uygulama kodları
 COPY . .
 
-# Build et
-RUN npm run build
+# Port
+EXPOSE 8000
 
-# Production stage
-FROM nginx:alpine
-
-# Nginx konfigürasyonu
-COPY nginx.conf /etc/nginx/conf.d/default.conf
-
-# Build edilmiş dosyaları kopyala
-COPY --from=build /app/build /usr/share/nginx/html
-
-EXPOSE 3000
-
-CMD ["nginx", "-g", "daemon off;"]
+# Başlatma
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
