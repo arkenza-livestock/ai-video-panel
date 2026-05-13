@@ -4,7 +4,9 @@ WORKDIR /app
 
 # package.json kopyala
 COPY package*.json ./
-RUN npm ci --only=production
+
+# npm ci yerine npm install kullan (package-lock.json yoksa)
+RUN npm install
 
 # Kaynak kodları kopyala
 COPY . .
