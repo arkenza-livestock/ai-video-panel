@@ -1,7 +1,6 @@
 version: '3.8'
 
 services:
-  # PostgreSQL - Veritabanı
   postgres:
     image: postgres:15-alpine
     environment:
@@ -18,7 +17,6 @@ services:
       timeout: 5s
       retries: 5
 
-  # Redis - Cache ve Message Broker
   redis:
     image: redis:7-alpine
     command: redis-server --appendonly yes
@@ -32,7 +30,6 @@ services:
       timeout: 5s
       retries: 5
 
-  # Backend API
   backend:
     build: ./backend
     ports:
@@ -40,13 +37,11 @@ services:
     environment:
       - DATABASE_URL=postgresql://atmosfer:atmosfer123@postgres:5432/atmosfer
       - REDIS_URL=redis://redis:6379/0
-      - SECRET_KEY=${SECRET_KEY:-atmosfer-super-secret-key-2024}
       - DEBUG=true
+      - SECRET_KEY=${SECRET_KEY:-atmosfer-secret-key}
     volumes:
       - ./backend:/app
       - output_volume:/app/output
-      - temp_volume:/app/temp
-      - uploads_volume:/app/uploads
     depends_on:
       postgres:
         condition: service_healthy
@@ -54,20 +49,15 @@ services:
         condition: service_healthy
     networks:
       - atmosfer-network
-    command: uvicorn main:app --host 0.0.0.0 --port 8000 --reload
 
-  # Celery Worker
   worker:
     build: ./backend
     environment:
       - DATABASE_URL=postgresql://atmosfer:atmosfer123@postgres:5432/atmosfer
       - REDIS_URL=redis://redis:6379/0
-      - SECRET_KEY=${SECRET_KEY:-atmosfer-super-secret-key-2024}
     volumes:
       - ./backend:/app
       - output_volume:/app/output
-      - temp_volume:/app/temp
-      - uploads_volume:/app/uploads
     depends_on:
       postgres:
         condition: service_healthy
@@ -75,24 +65,8 @@ services:
         condition: service_healthy
     networks:
       - atmosfer-network
-    command: celery -A main.celery_app worker --loglevel=info --concurrency=4
+    command: celery -A main.celery_app worker --loglevel=info
 
-  # Celery Beat (Scheduled Tasks)
-  beat:
-    build: ./backend
-    environment:
-      - DATABASE_URL=postgresql://atmosfer:atmosfer123@postgres:5432/atmosfer
-      - REDIS_URL=redis://redis:6379/0
-    volumes:
-      - ./backend:/app
-    depends_on:
-      - redis
-      - worker
-    networks:
-      - atmosfer-network
-    command: celery -A main.celery_app beat --loglevel=info
-
-  # Frontend
   frontend:
     build: ./frontend
     ports:
@@ -101,34 +75,12 @@ services:
       - backend
     networks:
       - atmosfer-network
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:3000"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-
-  # Nginx Reverse Proxy
-  nginx:
-    image: nginx:alpine
-    ports:
-      - "80:80"
-      - "443:443"
-    volumes:
-      - ./nginx.conf:/etc/nginx/nginx.conf
-      - ./ssl:/etc/nginx/ssl
-    depends_on:
-      - frontend
-      - backend
-    networks:
-      - atmosfer-network
-
-networks:
-  atmosfer-network:
-    driver: bridge
 
 volumes:
   postgres_data:
   redis_data:
   output_volume:
-  temp_volume:
-  uploads_volume:
+
+networks:
+  atmosfer-network:
+    driver: bridge
