@@ -1,31 +1,28 @@
-FROM python:3.11-slim
+FROM node:18-alpine as build
 
 WORKDIR /app
 
-# Sistem bağımlılıkları
-RUN apt-get update && apt-get install -y \
-    ffmpeg \
-    imagemagick \
-    libsm6 \
-    libxext6 \
-    libxrender-dev \
-    libgomp1 \
-    curl \
-    && rm -rf /var/lib/apt/lists/*
+# package.json kopyala
+COPY package*.json ./
 
-# Python paketleri
-COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+# npm ci yerine npm install kullan (package-lock.json yoksa)
+RUN npm install
 
-# Uygulama kodları
+# Kaynak kodları kopyala
 COPY . .
 
-# Port
-EXPOSE 8000
+# Build et
+RUN npm run build
 
-# Redis bekleme script'i
-COPY wait-for-redis.sh /
-RUN chmod +x /wait-for-redis.sh
+# Production stage
+FROM nginx:alpine
 
-# Başlatma
-CMD ["/wait-for-redis.sh", "uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
+# Nginx konfigürasyonu
+COPY nginx.conf /etc/nginx/conf.d/default.conf
+
+# Build edilmiş dosyaları kopyala
+COPY --from=build /app/build /usr/share/nginx/html
+
+EXPOSE 3000
+
+CMD ["nginx", "-g", "daemon off;"]
