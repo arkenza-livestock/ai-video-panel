@@ -1,9 +1,0 @@
-.git
-.gitignore
-README.md
-QUICK_START.md
-.vscode
-.idea
-node_modules
-__pycache__
-.pytest_cache
