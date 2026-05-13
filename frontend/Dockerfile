@@ -1,36 +1,26 @@
-FROM python:3.11-slim
+FROM node:18-alpine as build
 
 WORKDIR /app
 
-# Install system dependencies
-RUN apt-get update && apt-get install -y \
-    ffmpeg \
-    libsm6 \
-    libxext6 \
-    libxrender-dev \
-    libgomp1 \
-    libglib2.0-0 \
-    libsndfile1 \
-    libportaudio2 \
-    curl \
-    && rm -rf /var/lib/apt/lists/*
+# package.json kopyala
+COPY package*.json ./
+RUN npm ci --only=production
 
-# Install Python dependencies
-COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt --break-system-packages || true
-
-# Copy application code
+# Kaynak kodları kopyala
 COPY . .
 
-# Create necessary directories
-RUN mkdir -p temp output uploads logs
+# Build et
+RUN npm run build
 
-# Health check
-HEALTHCHECK --interval=30s --timeout=10s --start-period=10s --retries=3 \
-    CMD curl -f http://localhost:8000/health || exit 1
+# Production stage
+FROM nginx:alpine
 
-# Expose port
-EXPOSE 8000
+# Nginx konfigürasyonu
+COPY nginx.conf /etc/nginx/conf.d/default.conf
 
-# Default command
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
+# Build edilmiş dosyaları kopyala
+COPY --from=build /app/build /usr/share/nginx/html
+
+EXPOSE 3000
+
+CMD ["nginx", "-g", "daemon off;"]
