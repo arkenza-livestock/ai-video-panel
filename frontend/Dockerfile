@@ -1,4 +1,3 @@
-cat > /home/claude/Atmosfer-Pro-Complete/frontend/Dockerfile << 'EOF'
 FROM node:18-alpine
 
 WORKDIR /app
@@ -18,4 +17,3 @@ ENV REACT_APP_API_URL=http://backend:8000
 ENV CI=false
 
 CMD ["npm", "start"]
-EOF
