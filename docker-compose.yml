@@ -8,70 +8,54 @@ services:
       - "6379:6379"
     volumes:
       - redis_data:/data
-    command: redis-server --appendonly yes
-    healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
     networks:
       - atmosfer-pro-network
+    restart: unless-stopped
 
   backend:
-    build: ./backend
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
     container_name: atmosfer-pro-backend
     ports:
       - "8000:8000"
     environment:
       - REDIS_URL=redis://redis:6379/0
       - DEBUG=true
-      - LOG_LEVEL=info
-      - DATABASE_URL=sqlite:///./atmosfer_pro.db
     depends_on:
-      redis:
-        condition: service_healthy
+      - redis
     volumes:
       - ./backend:/app
       - ./output:/app/output
       - ./temp:/app/temp
       - ./uploads:/app/uploads
-      - ./logs:/app/logs
-    command: uvicorn main:app --host 0.0.0.0 --port 8000 --reload
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 10s
     networks:
       - atmosfer-pro-network
     restart: unless-stopped
 
   worker:
-    build: ./backend
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
     container_name: atmosfer-pro-worker
     environment:
       - REDIS_URL=redis://redis:6379/0
-      - DEBUG=true
-      - LOG_LEVEL=info
     depends_on:
-      redis:
-        condition: service_healthy
-      backend:
-        condition: service_healthy
+      - redis
+      - backend
     volumes:
       - ./backend:/app
       - ./output:/app/output
       - ./temp:/app/temp
-      - ./uploads:/app/uploads
-      - ./logs:/app/logs
-    command: celery -A video_worker worker --loglevel=info --concurrency=2
     networks:
       - atmosfer-pro-network
+    command: celery -A video_worker worker --loglevel=info
     restart: unless-stopped
 
   frontend:
-    build: ./frontend
+    build:
+      context: .
+      dockerfile: frontend/Dockerfile
     container_name: atmosfer-pro-frontend
     ports:
       - "3000:3000"
@@ -79,18 +63,10 @@ services:
       - REACT_APP_API_URL=http://backend:8000
       - CI=false
     depends_on:
-      backend:
-        condition: service_healthy
+      - backend
     volumes:
       - ./frontend/src:/app/src
       - ./frontend/public:/app/public
-    command: npm start
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:3000"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 30s
     networks:
       - atmosfer-pro-network
     restart: unless-stopped
