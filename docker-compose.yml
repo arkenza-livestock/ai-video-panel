@@ -3,78 +3,39 @@ version: '3.8'
 services:
   redis:
     image: redis:7-alpine
-    container_name: atmosfer-pro-redis
     ports:
       - "6379:6379"
-    volumes:
-      - redis_data:/data
     networks:
-      - atmosfer-pro-network
-    restart: unless-stopped
+      - net
 
   backend:
-    build:
-      context: .
-      dockerfile: backend/Dockerfile
-    container_name: atmosfer-pro-backend
+    image: python:3.11-slim
+    working_dir: /app
+    command: python main.py
     ports:
       - "8000:8000"
     environment:
       - REDIS_URL=redis://redis:6379/0
-      - DEBUG=true
     depends_on:
       - redis
     volumes:
       - ./backend:/app
       - ./output:/app/output
-      - ./temp:/app/temp
-      - ./uploads:/app/uploads
     networks:
-      - atmosfer-pro-network
-    restart: unless-stopped
-
-  worker:
-    build:
-      context: .
-      dockerfile: backend/Dockerfile
-    container_name: atmosfer-pro-worker
-    environment:
-      - REDIS_URL=redis://redis:6379/0
-    depends_on:
-      - redis
-      - backend
-    volumes:
-      - ./backend:/app
-      - ./output:/app/output
-      - ./temp:/app/temp
-    networks:
-      - atmosfer-pro-network
-    command: celery -A video_worker worker --loglevel=info
-    restart: unless-stopped
+      - net
 
   frontend:
     build:
-      context: .
-      dockerfile: frontend/Dockerfile
-    container_name: atmosfer-pro-frontend
+      context: ./frontend
+      dockerfile: Dockerfile
     ports:
       - "3000:3000"
     environment:
-      - REACT_APP_API_URL=http://backend:8000
-      - CI=false
+      - REACT_APP_API_URL=http://localhost:8000
     depends_on:
       - backend
-    volumes:
-      - ./frontend/src:/app/src
-      - ./frontend/public:/app/public
     networks:
-      - atmosfer-pro-network
-    restart: unless-stopped
-
-volumes:
-  redis_data:
-    driver: local
+      - net
 
 networks:
-  atmosfer-pro-network:
-    driver: bridge
+  net:
