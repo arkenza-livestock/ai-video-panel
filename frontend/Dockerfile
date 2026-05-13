@@ -1,28 +1,22 @@
-FROM node:18-alpine as build
+FROM node:18-alpine
 
 WORKDIR /app
 
 # package.json kopyala
 COPY package*.json ./
 
-# npm ci yerine npm install kullan (package-lock.json yoksa)
+# Bağımlılıkları yükle
 RUN npm install
 
-# Kaynak kodları kopyala
+# Tüm kaynak kodları kopyala
 COPY . .
 
 # Build et
 RUN npm run build
 
-# Production stage
-FROM nginx:alpine
-
-# Nginx konfigürasyonu
-COPY nginx.conf /etc/nginx/conf.d/default.conf
-
-# Build edilmiş dosyaları kopyala
-COPY --from=build /app/build /usr/share/nginx/html
+# Basit bir web sunucusu ile serve et
+RUN npm install -g serve
 
 EXPOSE 3000
 
-CMD ["nginx", "-g", "daemon off;"]
+CMD ["serve", "-s", "build", "-l", "3000"]
