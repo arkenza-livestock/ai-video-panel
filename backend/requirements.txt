@@ -1,4 +1,2 @@
-cat > /app/requirements.txt << 'EOF'
 fastapi
 uvicorn
-EOF
