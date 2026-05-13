@@ -1,132 +1,43 @@
-"""
-ATMOSFER STÜDYO PRO - Profesyonel Video Editor Backend
-Advanced video editing API with timeline, effects, and asset management
-"""
-
-from fastapi import FastAPI, HTTPException, UploadFile, File, Depends
+from fastapi import FastAPI, HTTPException, Depends, UploadFile, File, Form
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.staticfiles import StaticFiles
-from pydantic import BaseModel, Field
-from typing import Optional, List, Dict, Any
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+from fastapi.responses import FileResponse, JSONResponse
+from pydantic import BaseModel
+from typing import Optional, List
 import uuid
-import json
 import os
+import json
+import subprocess
+import shutil
 from datetime import datetime
+from PIL import Image, ImageDraw, ImageFont
+import moviepy.editor as mp
 from celery import Celery
-from dotenv import load_dotenv
-import sqlite3
-from enum import Enum
+import redis
+import asyncio
+from concurrent.futures import ThreadPoolExecutor
 
-# Load environment variables
-load_dotenv()
+# ==================== KONFİGÜRASYON ====================
+class Config:
+    SECRET_KEY = os.getenv("SECRET_KEY", "atmosfer-super-secret-key-2024")
+    REDIS_URL = os.getenv("REDIS_URL", "redis://localhost:6379/0")
+    DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./atmosfer.db")
+    OUTPUT_DIR = "output"
+    TEMP_DIR = "temp"
+    UPLOAD_DIR = "uploads"
+    MAX_FILE_SIZE = 500 * 1024 * 1024  # 500MB
+    ALLOWED_EXTENSIONS = {".mp4", ".mp3", ".wav", ".jpg", ".png", ".jpeg"}
 
-# ============================================================================
-# ENUMS & CONSTANTS
-# ============================================================================
+config = Config()
 
-class VideoCategory(str, Enum):
-    """Video Kategorileri"""
-    SAVAŞ = "savaş"  # Samuray, Şövalye, Gladyatör vs
-    UYKU = "uyku"
-    MEDITASYON = "meditasyon"
-    ÇALIŞMA = "çalışma"
-    MÜZIK_KLİP = "müzik_klip"
-    PODCAST = "podcast"
-    SİNEMATİK = "sinematik"
-    DOĞA = "doğa"
-    TÜTÖRİYAL = "tütöryial"
-    OYUN = "oyun"
-
-class LayerType(str, Enum):
-    """Timeline Katman Türleri"""
-    VIDEO = "video"
-    IMAGE = "image"
-    AUDIO = "audio"
-    TEXT = "text"
-    EFFECT = "effect"
-    TRANSITION = "transition"
-
-class EffectType(str, Enum):
-    """Efekt Türleri"""
-    ZOOM = "zoom"
-    PAN = "pan"
-    FADE = "fade"
-    DISSOLVE = "dissolve"
-    COLOR_GRADE = "color_grade"
-    BLUR = "blur"
-    GLOW = "glow"
-    SHARPEN = "sharpen"
-    SLOW_MOTION = "slow_motion"
-    SPEED_UP = "speed_up"
-
-# ============================================================================
-# DATABASE INITIALIZATION
-# ============================================================================
-
-def init_database():
-    """Initialize SQLite database"""
-    conn = sqlite3.connect("atmosfer_pro.db")
-    cursor = conn.cursor()
-    
-    # Projects table
-    cursor.execute("""
-        CREATE TABLE IF NOT EXISTS projects (
-            id TEXT PRIMARY KEY,
-            title TEXT NOT NULL,
-            category TEXT NOT NULL,
-            duration INTEGER,
-            template TEXT,
-            created_at TIMESTAMP,
-            updated_at TIMESTAMP,
-            data JSON
-        )
-    """)
-    
-    # Layers table
-    cursor.execute("""
-        CREATE TABLE IF NOT EXISTS layers (
-            id TEXT PRIMARY KEY,
-            project_id TEXT NOT NULL,
-            layer_type TEXT NOT NULL,
-            start_time REAL,
-            end_time REAL,
-            asset_id TEXT,
-            properties JSON,
-            order_index INTEGER,
-            FOREIGN KEY(project_id) REFERENCES projects(id)
-        )
-    """)
-    
-    # Assets table
-    cursor.execute("""
-        CREATE TABLE IF NOT EXISTS assets (
-            id TEXT PRIMARY KEY,
-            type TEXT NOT NULL,
-            source TEXT,
-            category TEXT,
-            filename TEXT,
-            url TEXT,
-            metadata JSON,
-            created_at TIMESTAMP
-        )
-    """)
-    
-    conn.commit()
-    conn.close()
-
-init_database()
-
-# ============================================================================
-# FASTAPI APP SETUP
-# ============================================================================
-
+# ==================== UYGULAMA BAŞLATMA ====================
 app = FastAPI(
-    title="Atmosfer Stüdyo PRO",
-    description="Profesyonel Video Editor - Advanced Timeline Editing, Asset Management, Effects & More",
+    title="Atmosfer Stüdyo Pro API",
+    description="Profesyonel Video Düzenleme ve Otomasyon Sistemi",
     version="2.0.0"
 )
 
-# CORS
+# CORS Ayarları
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -135,613 +46,328 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Redis & Celery Setup
-redis_url = os.getenv("REDIS_URL", "redis://localhost:6379/0")
-celery_app = Celery("video_pro", broker=redis_url, backend=redis_url)
-celery_app.conf.update(
-    task_serializer='json',
-    accept_content=['json'],
-    result_serializer='json',
-    timezone='UTC',
-)
+# Celery ve Redis
+celery_app = Celery("atmosfer", broker=config.REDIS_URL, backend=config.REDIS_URL)
+redis_client = redis.from_url(config.REDIS_URL)
 
-# Create directories
-os.makedirs("temp", exist_ok=True)
-os.makedirs("output", exist_ok=True)
-os.makedirs("uploads", exist_ok=True)
-os.makedirs("logs", exist_ok=True)
+# Thread Pool
+executor = ThreadPoolExecutor(max_workers=4)
 
-# ============================================================================
-# PYDANTIC MODELS
-# ============================================================================
-
-class TimelineLayer(BaseModel):
-    """Timeline Layer Model"""
-    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
-    layer_type: LayerType
-    asset_id: Optional[str] = None
-    start_time: float
-    end_time: float
-    properties: Dict[str, Any] = {}
-    effects: List[Dict[str, Any]] = []
-    transitions: List[Dict[str, Any]] = []
-
-class VideoTemplate(BaseModel):
-    """Video Template Model"""
-    name: str
-    category: VideoCategory
-    description: str
-    structure: Dict[str, Any]
-    default_assets: Dict[str, str] = {}
-
+# ==================== VERİ MODELLERİ ====================
 class Project(BaseModel):
-    """Video Project Model"""
-    title: str
-    category: VideoCategory
-    duration: int = 300  # 5 minutes default
-    fps: int = 30
-    resolution: str = "1920x1080"
-    template: Optional[str] = None
-    layers: List[TimelineLayer] = []
-
-class ProjectResponse(BaseModel):
-    """Project Response"""
-    project_id: str
-    title: str
+    id: str
+    name: str
     category: str
-    status: str
+    template: Optional[str] = None
     created_at: str
-    layers_count: int
+    updated_at: str
+    settings: dict = {}
+    timeline: dict = {}
+    status: str = "draft"
+
+class VideoJob(BaseModel):
+    project_id: str
+    output_format: str = "mp4"
+    resolution: str = "1920x1080"
+    fps: int = 30
+    bitrate: str = "5M"
+    include_watermark: bool = True
+    upload_to_youtube: bool = False
+    youtube_title: Optional[str] = None
+    youtube_description: Optional[str] = None
+    youtube_tags: Optional[List[str]] = None
+    youtube_category: str = "22"
+    youtube_privacy: str = "unlisted"
 
 class Asset(BaseModel):
-    """Asset Model (Resim, Müzik, SFX)"""
-    asset_type: str  # music, image, sfx, video
-    source: str  # uploaded, unsplash, pexels, epidemic
-    category: str
-    metadata: Dict[str, Any] = {}
+    id: str
+    type: str  # image, audio, video, font
+    name: str
+    url: str
+    thumbnail: Optional[str] = None
+    duration: Optional[float] = None
+    metadata: dict = {}
 
-class ExportSettings(BaseModel):
-    """Export Quality Settings"""
-    format: str = "mp4"  # mp4, webm, mov
-    quality: str = "high"  # low, medium, high, 4k
-    preset: str = "balanced"  # fast, balanced, slow (quality)
-    bitrate: str = "5000k"
-    fps: int = 30
-    watermark: Optional[bool] = False
-    youtube_optimize: Optional[bool] = False
+# ==================== VERİTABANI (GEÇİCİ) ====================
+projects_db = {}
+assets_db = {}
+jobs_db = {}
 
-# ============================================================================
-# API ENDPOINTS - INFO & FORMATS
-# ============================================================================
+# ==================== API ENDPOINTLERİ ====================
 
-@app.get("/", tags=["Info"])
-def root():
-    """API Root"""
+@app.get("/")
+async def root():
     return {
-        "name": "Atmosfer Stüdyo PRO",
+        "message": "Atmosfer Stüdyo Pro API",
         "version": "2.0.0",
-        "type": "Professional Video Editor",
-        "features": [
-            "Timeline Editor",
-            "Asset Management",
-            "Effects & Transitions",
-            "Color Grading",
-            "Audio Mixing",
-            "Template System",
-            "YouTube Integration"
-        ]
+        "status": "online",
+        "timestamp": datetime.now().isoformat()
     }
 
-@app.get("/health", tags=["Info"])
-def health():
-    """Health Check"""
-    return {"status": "healthy", "timestamp": str(datetime.now())}
-
-@app.get("/templates", tags=["Templates"])
-def get_templates():
-    """Get all available templates"""
-    templates = {
-        "savaş": {
-            "name": "Savaş Kategorisi",
-            "description": "Samuray vs Şövalye, Gladyatör vs Savaşçı",
-            "structure": {
-                "intro": {"duration": 30, "type": "cinematic"},
-                "character_1": {"duration": 120, "type": "biography"},
-                "character_2": {"duration": 120, "type": "biography"},
-                "battle": {"duration": 180, "type": "action"},
-                "conclusion": {"duration": 30, "type": "epic"}
-            },
-            "recommended_music": ["Epic Drama", "Battle Theme", "Intense Action"],
-            "recommended_effects": ["Zoom", "Slow Motion", "Color Grade"]
-        },
-        "uyku": {
-            "name": "Uyku Ambiyansı",
-            "description": "Yağmur, Orman, Okyanus",
-            "structure": {
-                "intro": {"duration": 30, "type": "calm"},
-                "main": {"duration": 540, "type": "ambient"}
-            },
-            "recommended_music": ["Ambient", "Piano", "Nature Sounds"],
-            "recommended_effects": ["Fade", "Soft Focus"]
-        },
-        "müzik_klip": {
-            "name": "Müzik Klibi",
-            "description": "Şarkı senkronizasyonu",
-            "structure": {
-                "intro": {"duration": 15, "type": "teaser"},
-                "verse_1": {"duration": 45, "type": "setup"},
-                "chorus": {"duration": 30, "type": "peak"},
-                "verse_2": {"duration": 45, "type": "development"},
-                "outro": {"duration": 30, "type": "finale"}
-            }
-        },
-        "podcast": {
-            "name": "Podcast Arka Fonu",
-            "description": "Dinamik arka plan + alt yazılar",
-            "structure": {
-                "intro": {"duration": 20, "type": "branding"},
-                "content": {"duration": 600, "type": "dynamic"},
-                "outro": {"duration": 15, "type": "closing"}
-            }
-        },
-        "sinematik": {
-            "name": "Sinematik Intro/Outro",
-            "description": "Film açılışı, Trailer, Finale",
-            "structure": {
-                "opening": {"duration": 60, "type": "dramatic"},
-                "content": {"duration": 300, "type": "storytelling"},
-                "credits": {"duration": 30, "type": "elegant"}
-            }
-        }
-    }
-    return templates
-
-@app.get("/effects", tags=["Effects"])
-def get_effects():
-    """Get available effects and transitions"""
-    return {
-        "effects": {
-            "visual": [
-                {"id": "zoom", "name": "Zoom In/Out", "category": "motion"},
-                {"id": "pan", "name": "Pan Left/Right", "category": "motion"},
-                {"id": "fade", "name": "Fade In/Out", "category": "opacity"},
-                {"id": "dissolve", "name": "Dissolve", "category": "transition"},
-                {"id": "blur", "name": "Blur", "category": "filter"},
-                {"id": "glow", "name": "Glow", "category": "light"},
-                {"id": "color_grade", "name": "Color Grade", "category": "color"},
-                {"id": "slow_motion", "name": "Slow Motion", "category": "time"},
-                {"id": "speed_up", "name": "Speed Up", "category": "time"},
-                {"id": "sepia", "name": "Sepia", "category": "color"},
-                {"id": "vignette", "name": "Vignette", "category": "light"},
-                {"id": "glitch", "name": "Glitch", "category": "distortion"}
-            ],
-            "audio": [
-                {"id": "fade_audio", "name": "Audio Fade", "category": "volume"},
-                {"id": "crossfade", "name": "Crossfade", "category": "transition"},
-                {"id": "normalize", "name": "Normalize", "category": "level"},
-                {"id": "reverb", "name": "Reverb", "category": "effect"},
-                {"id": "echo", "name": "Echo", "category": "effect"},
-                {"id": "eq", "name": "EQ", "category": "tone"}
-            ],
-            "transitions": [
-                {"id": "fade", "name": "Fade", "duration": 500},
-                {"id": "dissolve", "name": "Dissolve", "duration": 500},
-                {"id": "wipe", "name": "Wipe", "duration": 500},
-                {"id": "slide", "name": "Slide", "duration": 500},
-                {"id": "zoom_transition", "name": "Zoom Transition", "duration": 500}
-            ]
-        }
-    }
-
-@app.get("/assets/libraries", tags=["Assets"])
-def get_asset_libraries():
-    """Get available asset libraries (Telif-free)"""
-    return {
-        "music": [
-            {"id": "epidemic", "name": "Epidemic Sound", "type": "premium", "categories": ["all"]},
-            {"id": "bensound", "name": "Bensound", "type": "free", "url": "bensound.com"},
-            {"id": "pixabay_music", "name": "Pixabay Music", "type": "free", "url": "pixabay.com/music"},
-            {"id": "youtube_audio", "name": "YouTube Audio Library", "type": "free"},
-            {"id": "incompetech", "name": "Incompetech", "type": "free", "url": "incompetech.com"},
-            {"id": "freepd", "name": "FreePD", "type": "free", "url": "freepd.com"}
-        ],
-        "images": [
-            {"id": "unsplash", "name": "Unsplash", "type": "free", "url": "unsplash.com"},
-            {"id": "pexels", "name": "Pexels", "type": "free", "url": "pexels.com"},
-            {"id": "pixabay", "name": "Pixabay", "type": "free", "url": "pixabay.com"},
-            {"id": "wikimedia", "name": "Wikimedia Commons", "type": "free", "url": "commons.wikimedia.org"}
-        ],
-        "sfx": [
-            {"id": "freesound", "name": "Freesound", "type": "free", "url": "freesound.org"},
-            {"id": "zapsplat", "name": "Zapsplat", "type": "free", "url": "zapsplat.com"},
-            {"id": "bbc_sfx", "name": "BBC Sound Effects", "type": "free"}
-        ]
-    }
-
-# ============================================================================
-# API ENDPOINTS - PROJECT MANAGEMENT
-# ============================================================================
-
-@app.post("/projects", response_model=ProjectResponse, tags=["Projects"])
-def create_project(project: Project):
-    """Create new video project"""
+# -------------------- PROJE YÖNETİMİ --------------------
+@app.post("/api/projects")
+async def create_project(
+    name: str = Form(...),
+    category: str = Form(...),
+    template: Optional[str] = Form(None)
+):
     project_id = str(uuid.uuid4())
+    now = datetime.now().isoformat()
     
-    conn = sqlite3.connect("atmosfer_pro.db")
-    cursor = conn.cursor()
-    
-    cursor.execute("""
-        INSERT INTO projects (id, title, category, duration, created_at, updated_at, data)
-        VALUES (?, ?, ?, ?, ?, ?, ?)
-    """, (
-        project_id,
-        project.title,
-        project.category.value,
-        project.duration,
-        str(datetime.now()),
-        str(datetime.now()),
-        json.dumps({
-            "fps": project.fps,
-            "resolution": project.resolution,
-            "template": project.template,
-            "layers_count": len(project.layers)
-        })
-    ))
-    
-    conn.commit()
-    conn.close()
-    
-    return ProjectResponse(
-        project_id=project_id,
-        title=project.title,
-        category=project.category.value,
-        status="created",
-        created_at=str(datetime.now()),
-        layers_count=len(project.layers)
-    )
-
-@app.get("/projects/{project_id}", tags=["Projects"])
-def get_project(project_id: str):
-    """Get project details"""
-    conn = sqlite3.connect("atmosfer_pro.db")
-    cursor = conn.cursor()
-    
-    cursor.execute("SELECT * FROM projects WHERE id = ?", (project_id,))
-    row = cursor.fetchone()
-    conn.close()
-    
-    if not row:
-        raise HTTPException(status_code=404, detail="Project not found")
-    
-    return {
-        "project_id": row[0],
-        "title": row[1],
-        "category": row[2],
-        "duration": row[3],
-        "created_at": row[5]
+    project = {
+        "id": project_id,
+        "name": name,
+        "category": category,
+        "template": template,
+        "created_at": now,
+        "updated_at": now,
+        "settings": {
+            "resolution": "1920x1080",
+            "fps": 30,
+            "duration": 60,
+            "background_color": "#000000"
+        },
+        "timeline": {
+            "video_tracks": [],
+            "audio_tracks": [],
+            "text_tracks": []
+        },
+        "status": "draft"
     }
+    
+    projects_db[project_id] = project
+    
+    # JSON'a kaydet
+    with open(f"{config.TEMP_DIR}/{project_id}.json", "w") as f:
+        json.dump(project, f)
+    
+    return {"project_id": project_id, "project": project}
 
-@app.get("/projects", tags=["Projects"])
-def list_projects():
-    """List all projects"""
-    conn = sqlite3.connect("atmosfer_pro.db")
-    cursor = conn.cursor()
-    
-    cursor.execute("SELECT id, title, category, duration, created_at FROM projects ORDER BY created_at DESC")
-    rows = cursor.fetchall()
-    conn.close()
-    
-    return {
-        "projects": [
-            {
-                "id": row[0],
-                "title": row[1],
-                "category": row[2],
-                "duration": row[3],
-                "created_at": row[4]
-            }
-            for row in rows
-        ],
-        "count": len(rows)
-    }
+@app.get("/api/projects/{project_id}")
+async def get_project(project_id: str):
+    if project_id not in projects_db:
+        if os.path.exists(f"{config.TEMP_DIR}/{project_id}.json"):
+            with open(f"{config.TEMP_DIR}/{project_id}.json", "r") as f:
+                return json.load(f)
+        raise HTTPException(404, "Proje bulunamadı")
+    return projects_db[project_id]
 
-@app.put("/projects/{project_id}", tags=["Projects"])
-def update_project(project_id: str, project: Project):
-    """Update project"""
-    conn = sqlite3.connect("atmosfer_pro.db")
-    cursor = conn.cursor()
+@app.put("/api/projects/{project_id}")
+async def update_project(project_id: str, project_data: dict):
+    if project_id not in projects_db:
+        raise HTTPException(404, "Proje bulunamadı")
     
-    cursor.execute("""
-        UPDATE projects 
-        SET title = ?, category = ?, duration = ?, updated_at = ?
-        WHERE id = ?
-    """, (project.title, project.category.value, project.duration, str(datetime.now()), project_id))
+    projects_db[project_id].update(project_data)
+    projects_db[project_id]["updated_at"] = datetime.now().isoformat()
     
-    conn.commit()
-    conn.close()
+    with open(f"{config.TEMP_DIR}/{project_id}.json", "w") as f:
+        json.dump(projects_db[project_id], f)
     
-    return {"status": "updated", "project_id": project_id}
+    return {"status": "updated", "project": projects_db[project_id]}
 
-@app.delete("/projects/{project_id}", tags=["Projects"])
-def delete_project(project_id: str):
-    """Delete project"""
-    conn = sqlite3.connect("atmosfer_pro.db")
-    cursor = conn.cursor()
+@app.delete("/api/projects/{project_id}")
+async def delete_project(project_id: str):
+    if project_id in projects_db:
+        del projects_db[project_id]
     
-    cursor.execute("DELETE FROM layers WHERE project_id = ?", (project_id,))
-    cursor.execute("DELETE FROM projects WHERE id = ?", (project_id,))
+    project_file = f"{config.TEMP_DIR}/{project_id}.json"
+    if os.path.exists(project_file):
+        os.remove(project_file)
     
-    conn.commit()
-    conn.close()
+    output_file = f"{config.OUTPUT_DIR}/{project_id}.mp4"
+    if os.path.exists(output_file):
+        os.remove(output_file)
     
-    return {"status": "deleted", "project_id": project_id}
+    return {"status": "deleted"}
 
-# ============================================================================
-# API ENDPOINTS - TIMELINE & LAYERS
-# ============================================================================
+@app.get("/api/projects")
+async def list_projects():
+    return {"projects": list(projects_db.values()), "count": len(projects_db)}
 
-@app.post("/projects/{project_id}/layers", tags=["Timeline"])
-def add_layer(project_id: str, layer: TimelineLayer):
-    """Add layer to timeline"""
-    conn = sqlite3.connect("atmosfer_pro.db")
-    cursor = conn.cursor()
+# -------------------- ASSET YÖNETİMİ --------------------
+@app.post("/api/assets/upload")
+async def upload_asset(
+    file: UploadFile = File(...),
+    asset_type: str = Form("image")
+):
+    # Dosya uzantısını kontrol et
+    ext = os.path.splitext(file.filename)[1].lower()
+    if ext not in config.ALLOWED_EXTENSIONS:
+        raise HTTPException(400, f"Desteklenmeyen dosya türü: {ext}")
     
-    cursor.execute("""
-        INSERT INTO layers (id, project_id, layer_type, start_time, end_time, asset_id, properties, order_index)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-    """, (
-        layer.id,
-        project_id,
-        layer.layer_type.value,
-        layer.start_time,
-        layer.end_time,
-        layer.asset_id,
-        json.dumps(layer.properties),
-        0
-    ))
-    
-    conn.commit()
-    conn.close()
-    
-    return {"status": "layer_added", "layer_id": layer.id}
-
-@app.get("/projects/{project_id}/layers", tags=["Timeline"])
-def get_layers(project_id: str):
-    """Get all layers for project"""
-    conn = sqlite3.connect("atmosfer_pro.db")
-    cursor = conn.cursor()
-    
-    cursor.execute("""
-        SELECT id, layer_type, start_time, end_time, asset_id, properties 
-        FROM layers 
-        WHERE project_id = ? 
-        ORDER BY order_index
-    """, (project_id,))
-    
-    rows = cursor.fetchall()
-    conn.close()
-    
-    return {
-        "layers": [
-            {
-                "id": row[0],
-                "type": row[1],
-                "start_time": row[2],
-                "end_time": row[3],
-                "asset_id": row[4],
-                "properties": json.loads(row[5]) if row[5] else {}
-            }
-            for row in rows
-        ],
-        "count": len(rows)
-    }
-
-@app.put("/projects/{project_id}/layers/{layer_id}", tags=["Timeline"])
-def update_layer(project_id: str, layer_id: str, layer: TimelineLayer):
-    """Update layer properties"""
-    conn = sqlite3.connect("atmosfer_pro.db")
-    cursor = conn.cursor()
-    
-    cursor.execute("""
-        UPDATE layers 
-        SET start_time = ?, end_time = ?, properties = ?
-        WHERE id = ? AND project_id = ?
-    """, (
-        layer.start_time,
-        layer.end_time,
-        json.dumps(layer.properties),
-        layer_id,
-        project_id
-    ))
-    
-    conn.commit()
-    conn.close()
-    
-    return {"status": "layer_updated", "layer_id": layer_id}
-
-@app.delete("/projects/{project_id}/layers/{layer_id}", tags=["Timeline"])
-def delete_layer(project_id: str, layer_id: str):
-    """Delete layer from timeline"""
-    conn = sqlite3.connect("atmosfer_pro.db")
-    cursor = conn.cursor()
-    
-    cursor.execute("DELETE FROM layers WHERE id = ? AND project_id = ?", (layer_id, project_id))
-    
-    conn.commit()
-    conn.close()
-    
-    return {"status": "layer_deleted", "layer_id": layer_id}
-
-# ============================================================================
-# API ENDPOINTS - ASSETS
-# ============================================================================
-
-@app.post("/assets/upload", tags=["Assets"])
-async def upload_asset(file: UploadFile = File(...)):
-    """Upload asset (image, audio, video)"""
+    # Dosyayı kaydet
     asset_id = str(uuid.uuid4())
-    filename = f"{asset_id}_{file.filename}"
-    filepath = f"uploads/{filename}"
+    file_path = f"{config.UPLOAD_DIR}/{asset_id}{ext}"
     
-    contents = await file.read()
-    with open(filepath, "wb") as f:
-        f.write(contents)
+    with open(file_path, "wb") as f:
+        content = await file.read()
+        f.write(content)
     
-    conn = sqlite3.connect("atmosfer_pro.db")
-    cursor = conn.cursor()
-    
-    cursor.execute("""
-        INSERT INTO assets (id, type, source, filename, url, created_at)
-        VALUES (?, ?, ?, ?, ?, ?)
-    """, (
-        asset_id,
-        "uploaded",
-        "local",
-        filename,
-        filepath,
-        str(datetime.now())
-    ))
-    
-    conn.commit()
-    conn.close()
-    
-    return {
-        "asset_id": asset_id,
-        "filename": filename,
-        "url": filepath,
-        "status": "uploaded"
+    asset = {
+        "id": asset_id,
+        "type": asset_type,
+        "name": file.filename,
+        "url": file_path,
+        "created_at": datetime.now().isoformat()
     }
+    
+    assets_db[asset_id] = asset
+    
+    return {"asset_id": asset_id, "asset": asset}
 
-@app.get("/assets", tags=["Assets"])
-def list_assets():
-    """List all uploaded assets"""
-    conn = sqlite3.connect("atmosfer_pro.db")
-    cursor = conn.cursor()
-    
-    cursor.execute("SELECT id, type, filename, url FROM assets ORDER BY created_at DESC")
-    rows = cursor.fetchall()
-    conn.close()
-    
-    return {
-        "assets": [
-            {
-                "id": row[0],
-                "type": row[1],
-                "filename": row[2],
-                "url": row[3]
-            }
-            for row in rows
+@app.get("/api/assets")
+async def list_assets(asset_type: Optional[str] = None):
+    assets = list(assets_db.values())
+    if asset_type:
+        assets = [a for a in assets if a["type"] == asset_type]
+    return {"assets": assets, "count": len(assets)}
+
+@app.delete("/api/assets/{asset_id}")
+async def delete_asset(asset_id: str):
+    if asset_id in assets_db:
+        file_path = assets_db[asset_id]["url"]
+        if os.path.exists(file_path):
+            os.remove(file_path)
+        del assets_db[asset_id]
+    return {"status": "deleted"}
+
+# -------------------- ŞABLONLAR --------------------
+@app.get("/api/templates")
+async def get_templates(category: Optional[str] = None):
+    templates = {
+        "sleep": [
+            {"id": "sleep_01", "name": "Gece Yağmuru", "duration": 180, "preview": "/static/sleep_01.jpg"},
+            {"id": "sleep_02", "name": "Okyanus Dalgaları", "duration": 180, "preview": "/static/sleep_02.jpg"},
+            {"id": "sleep_03", "name": "Orman Rüzgarı", "duration": 180, "preview": "/static/sleep_03.jpg"},
+            {"id": "sleep_04", "name": "Şömine Sesi", "duration": 180, "preview": "/static/sleep_04.jpg"}
         ],
-        "count": len(rows)
+        "book": [
+            {"id": "book_01", "name": "Kütüphane Sessizliği", "duration": 120, "preview": "/static/book_01.jpg"},
+            {"id": "book_02", "name": "Sayfa Çevirme", "duration": 120, "preview": "/static/book_02.jpg"},
+            {"id": "book_03", "name": "Kahve ve Kitap", "duration": 120, "preview": "/static/book_03.jpg"}
+        ],
+        "journey": [
+            {"id": "journey_01", "name": "Gece Treni", "duration": 180, "preview": "/static/journey_01.jpg"},
+            {"id": "journey_02", "name": "Şehir Işıkları", "duration": 180, "preview": "/static/journey_02.jpg"},
+            {"id": "journey_03", "name": "Deniz Vapuru", "duration": 180, "preview": "/static/journey_03.jpg"}
+        ],
+        "war": [
+            {"id": "war_01", "name": "Savaş Rüzgarı", "duration": 60, "preview": "/static/war_01.jpg"},
+            {"id": "war_02", "name": "Asker Marşı", "duration": 60, "preview": "/static/war_02.jpg"}
+        ]
     }
+    
+    if category and category in templates:
+        return {"templates": templates[category]}
+    return {"templates": templates}
 
-# ============================================================================
-# API ENDPOINTS - EXPORT & RENDERING
-# ============================================================================
-
-@app.post("/projects/{project_id}/export", tags=["Export"])
-def export_project(project_id: str, settings: ExportSettings):
-    """Export/render video project"""
+# -------------------- VİDEO OLUŞTURMA --------------------
+@app.post("/api/render/{project_id}")
+async def render_video(project_id: str, job_config: VideoJob):
+    if project_id not in projects_db:
+        raise HTTPException(404, "Proje bulunamadı")
     
     job_id = str(uuid.uuid4())
-    
-    # Send to Celery worker
-    task = celery_app.send_task("render_video", args=[
-        project_id,
-        {
-            "format": settings.format,
-            "quality": settings.quality,
-            "preset": settings.preset,
-            "bitrate": settings.bitrate,
-            "fps": settings.fps,
-            "watermark": settings.watermark,
-            "youtube_optimize": settings.youtube_optimize
-        }
-    ])
-    
-    return {
+    job_data = {
         "job_id": job_id,
-        "status": "rendering",
-        "message": f"Video rendering started. Job ID: {job_id}",
-        "estimate_time": "5-30 minutes depending on length and quality"
+        "project_id": project_id,
+        "status": "queued",
+        "config": job_config.dict(),
+        "created_at": datetime.now().isoformat()
     }
+    
+    jobs_db[job_id] = job_data
+    
+    # Celery'ye gönder
+    celery_app.send_task("render_video", args=[project_id, job_id, job_config.dict()])
+    
+    return {"job_id": job_id, "status": "queued"}
 
-@app.get("/export-presets", tags=["Export"])
-def get_export_presets():
-    """Get export quality presets"""
+@app.get("/api/render/status/{job_id}")
+async def render_status(job_id: str):
+    if job_id not in jobs_db:
+        raise HTTPException(404, "İş bulunamadı")
+    
+    # Redis'ten status kontrol et
+    status = redis_client.get(f"job_{job_id}")
+    if status:
+        jobs_db[job_id]["status"] = status.decode()
+    
+    return jobs_db[job_id]
+
+@app.get("/api/render/download/{job_id}")
+async def download_video(job_id: str):
+    output_path = f"{config.OUTPUT_DIR}/{job_id}.mp4"
+    if not os.path.exists(output_path):
+        raise HTTPException(404, "Video henüz hazır değil")
+    
+    return FileResponse(output_path, media_type="video/mp4", filename=f"atmosfer_{job_id}.mp4")
+
+# -------------------- YOUTUBE ENTEGRASYONU --------------------
+@app.post("/api/youtube/upload/{job_id}")
+async def upload_to_youtube(
+    job_id: str,
+    title: str = Form(...),
+    description: str = Form(""),
+    tags: str = Form(""),
+    privacy: str = Form("unlisted")
+):
+    output_path = f"{config.OUTPUT_DIR}/{job_id}.mp4"
+    if not os.path.exists(output_path):
+        raise HTTPException(404, "Video bulunamadı")
+    
+    # YouTube'a yükleme işlemi (API anahtarı gerekli)
+    # Şimdilik simülasyon
     return {
-        "presets": {
-            "web": {
-                "format": "mp4",
-                "quality": "medium",
-                "bitrate": "2500k",
-                "fps": 30,
-                "description": "Web/Social Media"
-            },
-            "youtube": {
-                "format": "mp4",
-                "quality": "high",
-                "bitrate": "5000k",
-                "fps": 30,
-                "youtube_optimize": True,
-                "description": "YouTube Optimized"
-            },
-            "cinema": {
-                "format": "mov",
-                "quality": "4k",
-                "bitrate": "10000k",
-                "fps": 60,
-                "description": "Cinema Quality"
-            },
-            "mobile": {
-                "format": "mp4",
-                "quality": "low",
-                "bitrate": "1000k",
-                "fps": 24,
-                "description": "Mobile Friendly"
-            }
-        }
+        "status": "upload_simulated",
+        "video_id": f"yt_{job_id}",
+        "url": f"https://youtu.be/yt_{job_id}"
     }
 
-# ============================================================================
-# CELERY TASKS
-# ============================================================================
-
+# ==================== CELERY GÖREVLERİ ====================
 @celery_app.task(name="render_video")
-def render_video_task(project_id: str, export_settings: dict):
-    """Celery task: Render video project"""
-    print(f"🎬 Rendering project: {project_id}")
-    print(f"📊 Settings: {export_settings}")
+def render_video_task(project_id: str, job_id: str, config: dict):
+    redis_client.set(f"job_{job_id}", "processing")
     
     try:
-        # Here goes FFmpeg rendering logic
-        # This is a placeholder for the actual rendering
+        # FFmpeg ile video oluştur
+        project = projects_db.get(project_id)
+        if not project:
+            raise Exception("Proje bulunamadı")
         
-        output_file = f"output/{project_id}_{export_settings['quality']}.{export_settings['format']}"
+        output_path = f"/app/output/{job_id}.mp4"  # Docker içinde
         
-        return {
-            "project_id": project_id,
-            "status": "completed",
-            "output_file": output_file,
-            "message": "✅ Video rendering completed"
-        }
+        # Basit video oluştur (şimdilik)
+        cmd = [
+            "ffmpeg", "-f", "lavfi", "-i",
+            f"color=c=black:s={config['resolution']}:d={config.get('duration', 60)}",
+            "-vf", f"drawtext=text='{project['name']}':fontcolor=white:fontsize=70:x=(w-text_w)/2:y=(h-text_h)/2",
+            "-c:v", "libx264",
+            "-b:v", config['bitrate'],
+            "-r", str(config['fps']),
+            output_path
+        ]
+        subprocess.run(cmd, check=True)
+        
+        redis_client.set(f"job_{job_id}", "completed")
+        
+        # YouTube'a yükle
+        if config.get("upload_to_youtube"):
+            # YouTube upload kodları buraya gelecek
+            pass
+        
+        return {"status": "completed", "output": output_path}
+        
     except Exception as e:
-        return {
-            "project_id": project_id,
-            "status": "failed",
-            "error": str(e),
-            "message": "❌ Video rendering failed"
-        }
+        redis_client.set(f"job_{job_id}", f"failed: {str(e)}")
+        raise e
 
-# ============================================================================
-# MAIN
-# ============================================================================
+# ==================== KLASÖR OLUŞTURMA ====================
+os.makedirs(config.OUTPUT_DIR, exist_ok=True)
+os.makedirs(config.TEMP_DIR, exist_ok=True)
+os.makedirs(config.UPLOAD_DIR, exist_ok=True)
 
+# ==================== BAŞLAT ====================
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(
-        app,
-        host="0.0.0.0",
-        port=8000,
-        log_level="info"
-    )
+    uvicorn.run(app, host="0.0.0.0", port=8000)
