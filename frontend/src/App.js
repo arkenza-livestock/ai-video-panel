@@ -1,8 +1,9 @@
-import React, { useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useEditor } from './context/EditorContext';
 import ExportDialog from './ExportDialog';
 import SettingsModal from './SettingsModal';
 import AudioMixer from './AudioMixer';
+import Timeline from './components/Timeline';
 import './App.css';
 
 function App() {
@@ -29,15 +30,11 @@ function App() {
     deleteClip,
     addClip,
     applyEffect,
-    resizeClip,
-    saveResizeClip,
     historyIndex,
     history,
   } = useEditor();
 
-  const [draggedAsset, setDraggedAsset] = React.useState(null);
-  const [resizingClip, setResizingClip] = React.useState(null);
-  const timelineRef = useRef(null);
+  const [draggedAsset, setDraggedAsset] = useState(null);
 
   const assets = [
     { id: 1, name: 'Video 1', type: 'video', icon: '🎬', duration: 30 },
@@ -131,51 +128,6 @@ function App() {
     setDraggedAsset(null);
   };
 
-  const handleTimelineClick = (e) => {
-    if (!timelineRef.current) return;
-    const rect = timelineRef.current.getBoundingClientRect();
-    const percent = (e.clientX - rect.left) / rect.width;
-    setCurrentTime(Math.floor(percent * duration));
-  };
-
-  const handleResizeStart = (e, clipId, edge) => {
-    e.stopPropagation();
-    setResizingClip({ clipId, edge, startX: e.clientX });
-  };
-
-  const handleMouseMove = (e) => {
-    if (!resizingClip) return;
-    
-    const clip = timeline.find(c => c.id === resizingClip.clipId);
-    if (!clip) return;
-
-    const deltaPixels = e.clientX - resizingClip.startX;
-    const deltaSeconds = deltaPixels / 2;
-
-    if (resizingClip.edge === 'left') {
-      resizeClip(
-        resizingClip.clipId,
-        Math.max(0, clip.startTime + deltaSeconds),
-        Math.max(1, clip.duration - deltaSeconds)
-      );
-    } else {
-      resizeClip(
-        resizingClip.clipId,
-        clip.startTime,
-        Math.max(1, clip.duration + deltaSeconds)
-      );
-    }
-    
-    setResizingClip({ ...resizingClip, startX: e.clientX });
-  };
-
-  const handleMouseUp = () => {
-    if (resizingClip) {
-      saveResizeClip();
-    }
-    setResizingClip(null);
-  };
-
   const handleApplyEffect = () => {
     if (!selectedClip || !selectedEffect) return;
     applyEffect(selectedClip.id, selectedEffect);
@@ -192,16 +144,8 @@ function App() {
     return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
   };
 
-  const generateWaveform = () => {
-    return Array.from({ length: 30 }, () => Math.random() * 100);
-  };
-
-  const videoClips = timeline.filter(c => c.type === 'video');
-  const audioClips1 = timeline.filter((c, i) => c.type === 'audio' && i % 2 === 0);
-  const audioClips2 = timeline.filter((c, i) => c.type === 'audio' && i % 2 === 1);
-
   return (
-    <div className="app" onMouseMove={handleMouseMove} onMouseUp={handleMouseUp}>
+    <div className="app">
       <header className="header">
         <h1>🌙 {projectSettings.projectName}</h1>
         <div className="header-menu">
@@ -287,116 +231,7 @@ function App() {
             </div>
           </div>
 
-          <div className="timeline-container">
-            <div className="timeline-header">
-              <h3>🎬 Timeline</h3>
-              <span className="timeline-duration">
-                {formatTime(currentTime)} / {formatTime(duration)}
-              </span>
-            </div>
-            
-            <div className="timeline-scrubber-container" ref={timelineRef} onClick={handleTimelineClick}>
-              <div className="timeline-scrubber" style={{ left: `${(currentTime / duration) * 100}%` }} />
-              <div className="timeline-ruler">
-                {Array.from({ length: Math.ceil(duration / 10) }).map((_, i) => (
-                  <span key={i} className="ruler-mark">{i * 10}s</span>
-                ))}
-              </div>
-            </div>
-
-            <div className="timeline">
-              {/* VIDEO TRACK */}
-              <div className="track" onDragOver={handleDragOver} onDrop={() => handleDrop('video')}>
-                <div className="track-header">▼ V1</div>
-                <div className="track-content">
-                  {videoClips.map(clip => (
-                    <div 
-                      key={clip.id}
-                      className={`clip video-clip ${selectedClip?.id === clip.id ? 'selected' : ''}`}
-                      onClick={() => setSelectedClip(clip)}
-                      style={{ 
-                        marginLeft: `${(clip.startTime / duration) * 100}%`,
-                        width: `${(clip.duration / duration) * 100}%`
-                      }}
-                    >
-                      <div className="clip-left-handle" onMouseDown={(e) => handleResizeStart(e, clip.id, 'left')} />
-                      <span className="clip-label">{clip.name}</span>
-                      <button 
-                        className="delete-btn"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          deleteClip(clip.id);
-                        }}
-                      >×</button>
-                      <div className="clip-right-handle" onMouseDown={(e) => handleResizeStart(e, clip.id, 'right')} />
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* AUDIO TRACK 1 */}
-              <div className="track" onDragOver={handleDragOver} onDrop={() => handleDrop('audio1')}>
-                <div className="track-header">▼ A1</div>
-                <div className="track-content">
-                  {audioClips1.map(clip => (
-                    <div 
-                      key={clip.id}
-                      className={`clip audio-clip ${selectedClip?.id === clip.id ? 'selected' : ''}`}
-                      onClick={() => setSelectedClip(clip)}
-                      style={{ 
-                        marginLeft: `${(clip.startTime / duration) * 100}%`,
-                        width: `${(clip.duration / duration) * 100}%`
-                      }}
-                    >
-                      <div className="waveform">
-                        {generateWaveform().map((h, i) => (
-                          <div key={i} className="waveform-bar" style={{ height: `${h}%` }} />
-                        ))}
-                      </div>
-                      <button 
-                        className="delete-btn"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          deleteClip(clip.id);
-                        }}
-                      >×</button>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* AUDIO TRACK 2 */}
-              <div className="track" onDragOver={handleDragOver} onDrop={() => handleDrop('audio2')}>
-                <div className="track-header">▼ A2</div>
-                <div className="track-content">
-                  {audioClips2.map(clip => (
-                    <div 
-                      key={clip.id}
-                      className={`clip audio-clip ${selectedClip?.id === clip.id ? 'selected' : ''}`}
-                      onClick={() => setSelectedClip(clip)}
-                      style={{ 
-                        marginLeft: `${(clip.startTime / duration) * 100}%`,
-                        width: `${(clip.duration / duration) * 100}%`
-                      }}
-                    >
-                      <div className="waveform">
-                        {generateWaveform().map((h, i) => (
-                          <div key={i} className="waveform-bar" style={{ height: `${h}%` }} />
-                        ))}
-                      </div>
-                      <button 
-                        className="delete-btn"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          deleteClip(clip.id);
-                        }}
-                      >×</button>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-          </div>
+          <Timeline />
         </main>
 
         {/* RIGHT SIDEBAR */}
