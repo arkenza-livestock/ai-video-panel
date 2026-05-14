@@ -5,15 +5,21 @@ services:
     build:
       context: ./frontend
       dockerfile: Dockerfile
-    container_name: frontend
+    container_name: atmosfer-frontend
     ports:
-      - "3011:3000"
+      - "3012:3000"  # 3011 → 3012 değiştir
     environment:
       - REACT_APP_API_URL=http://localhost:8000
-    networks:
-      - net
     restart: unless-stopped
 
-networks:
-  net:
-    driver: bridge
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: atmosfer-backend
+    ports:
+      - "8000:8000"
+    environment:
+      - API_HOST=0.0.0.0
+      - API_PORT=8000
+    restart: unless-stopped
