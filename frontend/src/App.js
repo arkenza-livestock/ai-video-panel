@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import './App.css';
 
 function App() {
@@ -9,7 +9,8 @@ function App() {
   const [isPlaying, setIsPlaying] = useState(false);
   const [selectedEffect, setSelectedEffect] = useState(null);
   const [duration, setDuration] = useState(180);
-  const [trimMode, setTrimMode] = useState(false);
+  const [resizingClip, setResizingClip] = useState(null);
+  const timelineRef = useRef(null);
 
   const assets = [
     { id: 1, name: 'Video 1', type: 'video', icon: '🎬', duration: 30 },
@@ -43,9 +44,9 @@ function App() {
       ...draggedAsset,
       track: track,
       startTime: currentTime,
+      duration: draggedAsset.duration,
       effects: [],
-      trimStart: 0,
-      trimEnd: draggedAsset.duration
+      volume: 100,
     };
     setTimeline([...timeline, newClip]);
     setDraggedAsset(null);
@@ -54,6 +55,52 @@ function App() {
   const handleDeleteClip = (clipId) => {
     setTimeline(timeline.filter(c => c.id !== clipId));
     if (selectedClip?.id === clipId) setSelectedClip(null);
+  };
+
+  const handleTimelineClick = (e) => {
+    if (!timelineRef.current) return;
+    const rect = timelineRef.current.getBoundingClientRect();
+    const percent = (e.clientX - rect.left) / rect.width;
+    setCurrentTime(Math.floor(percent * duration));
+  };
+
+  const handleResizeStart = (e, clipId, edge) => {
+    e.stopPropagation();
+    setResizingClip({ clipId, edge, startX: e.clientX });
+  };
+
+  const handleMouseMove = (e) => {
+    if (!resizingClip) return;
+    
+    const clip = timeline.find(c => c.id === resizingClip.clipId);
+    if (!clip) return;
+
+    const deltaPixels = e.clientX - resizingClip.startX;
+    const deltaSeconds = deltaPixels / 2; // pixels to seconds conversion
+
+    const updatedTimeline = timeline.map(c => {
+      if (c.id !== resizingClip.clipId) return c;
+      
+      if (resizingClip.edge === 'left') {
+        return {
+          ...c,
+          startTime: Math.max(0, c.startTime + deltaSeconds),
+          duration: Math.max(1, c.duration - deltaSeconds)
+        };
+      } else {
+        return {
+          ...c,
+          duration: Math.max(1, c.duration + deltaSeconds)
+        };
+      }
+    });
+    
+    setTimeline(updatedTimeline);
+    setResizingClip({ ...resizingClip, startX: e.clientX });
+  };
+
+  const handleMouseUp = () => {
+    setResizingClip(null);
   };
 
   const handleApplyEffect = () => {
@@ -68,19 +115,14 @@ function App() {
     setSelectedClip({ ...selectedClip, effects: [...selectedClip.effects, selectedEffect] });
   };
 
-  const handleTrimClip = (clipId, start, end) => {
-    const updatedTimeline = timeline.map(c =>
-      c.id === clipId
-        ? { ...c, trimStart: start, trimEnd: end }
-        : c
-    );
-    setTimeline(updatedTimeline);
-  };
-
   const formatTime = (sec) => {
     const m = Math.floor(sec / 60);
     const s = Math.floor(sec % 60);
     return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+  };
+
+  const generateWaveform = (type) => {
+    return Array.from({ length: 30 }, () => Math.random() * 100);
   };
 
   const videoClips = timeline.filter(c => c.type === 'video');
@@ -88,7 +130,7 @@ function App() {
   const audioClips2 = timeline.filter((c, i) => c.type === 'audio' && i % 2 === 1);
 
   return (
-    <div className="app">
+    <div className="app" onMouseMove={handleMouseMove} onMouseUp={handleMouseUp}>
       <header className="header">
         <h1>🌙 Atmosfer Stüdyo</h1>
         <div className="header-menu">
@@ -146,17 +188,36 @@ function App() {
           <div className="canvas-container">
             <div className="canvas">
               <p>▶ Video Preview</p>
-              {selectedClip && (
-                <div className="clip-preview">
-                  <p className="clip-name">{selectedClip.name}</p>
-                  <p className="clip-duration">{formatTime(selectedClip.trimEnd - selectedClip.trimStart)}</p>
+              {selectedClip ? (
+                <div className="clip-inspector-preview">
+                  <p className="clip-name">📌 {selectedClip.name}</p>
+                  <p className="clip-info">Duration: {formatTime(selectedClip.duration)}</p>
+                  <p className="clip-info">Start: {formatTime(selectedClip.startTime)}</p>
                 </div>
+              ) : (
+                <p className="placeholder-text">Select a clip or drag asset here</p>
               )}
             </div>
           </div>
 
           <div className="timeline-container">
-            <h3>🎬 Timeline</h3>
+            <div className="timeline-header">
+              <h3>🎬 Timeline</h3>
+              <span className="timeline-duration">
+                {formatTime(currentTime)} / {formatTime(duration)}
+              </span>
+            </div>
+            
+            {/* TIMELINE SCRUBBER */}
+            <div className="timeline-scrubber-container" ref={timelineRef} onClick={handleTimelineClick}>
+              <div className="timeline-scrubber" style={{ left: `${(currentTime / duration) * 100}%` }} />
+              <div className="timeline-ruler">
+                {Array.from({ length: Math.ceil(duration / 10) }).map((_, i) => (
+                  <span key={i} className="ruler-mark">{i * 10}s</span>
+                ))}
+              </div>
+            </div>
+
             <div className="timeline">
               {/* VIDEO TRACK */}
               <div className="track" onDragOver={handleDragOver} onDrop={() => handleDrop('video')}>
@@ -167,8 +228,13 @@ function App() {
                       key={clip.id}
                       className={`clip video-clip ${selectedClip?.id === clip.id ? 'selected' : ''}`}
                       onClick={() => setSelectedClip(clip)}
+                      style={{ 
+                        marginLeft: `${(clip.startTime / duration) * 100}%`,
+                        width: `${(clip.duration / duration) * 100}%`
+                      }}
                     >
-                      <span>{clip.name}</span>
+                      <div className="clip-left-handle" onMouseDown={(e) => handleResizeStart(e, clip.id, 'left')} />
+                      <span className="clip-label">{clip.name}</span>
                       <button 
                         className="delete-btn"
                         onClick={(e) => {
@@ -176,6 +242,7 @@ function App() {
                           handleDeleteClip(clip.id);
                         }}
                       >×</button>
+                      <div className="clip-right-handle" onMouseDown={(e) => handleResizeStart(e, clip.id, 'right')} />
                     </div>
                   ))}
                 </div>
@@ -190,8 +257,16 @@ function App() {
                       key={clip.id}
                       className={`clip audio-clip ${selectedClip?.id === clip.id ? 'selected' : ''}`}
                       onClick={() => setSelectedClip(clip)}
+                      style={{ 
+                        marginLeft: `${(clip.startTime / duration) * 100}%`,
+                        width: `${(clip.duration / duration) * 100}%`
+                      }}
                     >
-                      <span>{clip.name}</span>
+                      <div className="waveform">
+                        {generateWaveform('audio').map((h, i) => (
+                          <div key={i} className="waveform-bar" style={{ height: `${h}%` }} />
+                        ))}
+                      </div>
                       <button 
                         className="delete-btn"
                         onClick={(e) => {
@@ -213,8 +288,16 @@ function App() {
                       key={clip.id}
                       className={`clip audio-clip ${selectedClip?.id === clip.id ? 'selected' : ''}`}
                       onClick={() => setSelectedClip(clip)}
+                      style={{ 
+                        marginLeft: `${(clip.startTime / duration) * 100}%`,
+                        width: `${(clip.duration / duration) * 100}%`
+                      }}
                     >
-                      <span>{clip.name}</span>
+                      <div className="waveform">
+                        {generateWaveform('audio').map((h, i) => (
+                          <div key={i} className="waveform-bar" style={{ height: `${h}%` }} />
+                        ))}
+                      </div>
                       <button 
                         className="delete-btn"
                         onClick={(e) => {
@@ -236,23 +319,29 @@ function App() {
           {selectedClip ? (
             <>
               <div className="panel">
-                <h3>✂️ Trim Clip</h3>
-                <label>Start</label>
-                <input 
-                  type="number" 
-                  value={selectedClip.trimStart}
-                  onChange={(e) => handleTrimClip(selectedClip.id, parseInt(e.target.value), selectedClip.trimEnd)}
-                />
-                <label>End</label>
-                <input 
-                  type="number" 
-                  value={selectedClip.trimEnd}
-                  onChange={(e) => handleTrimClip(selectedClip.id, selectedClip.trimStart, parseInt(e.target.value))}
-                />
+                <h3>📋 Clip Info</h3>
+                <div className="clip-info-grid">
+                  <div>
+                    <label>Name</label>
+                    <p>{selectedClip.name}</p>
+                  </div>
+                  <div>
+                    <label>Duration</label>
+                    <p>{formatTime(selectedClip.duration)}</p>
+                  </div>
+                  <div>
+                    <label>Start Time</label>
+                    <p>{formatTime(selectedClip.startTime)}</p>
+                  </div>
+                  <div>
+                    <label>Volume</label>
+                    <input type="range" min="0" max="100" defaultValue={selectedClip.volume} />
+                  </div>
+                </div>
               </div>
 
               <div className="panel">
-                <h3>✨ Effects</h3>
+                <h3>✨ Add Effects</h3>
                 {effects.map(effect => (
                   <button
                     key={effect.id}
@@ -263,47 +352,52 @@ function App() {
                   </button>
                 ))}
                 <button className="apply-effect-btn" onClick={handleApplyEffect}>
-                  ➕ Apply Effect
+                  ➕ Apply
                 </button>
               </div>
 
               <div className="panel">
-                <h3>📋 Applied Effects</h3>
-                {selectedClip.effects.length > 0 ? (
+                <h3>📊 Applied Effects</h3>
+                {selectedClip.effects && selectedClip.effects.length > 0 ? (
                   <div className="effects-list">
                     {selectedClip.effects.map((eff, i) => (
-                      <div key={i} className="applied-effect">
+                      <div key={i} className="effect-badge">
                         {eff.icon} {eff.name}
                       </div>
                     ))}
                   </div>
                 ) : (
-                  <p className="no-effects">No effects applied</p>
+                  <p className="empty-state">No effects</p>
                 )}
               </div>
             </>
           ) : (
             <div className="panel">
-              <h3>ℹ️ Info</h3>
-              <p className="info-text">Select a clip to edit</p>
+              <h3>ℹ️ Help</h3>
+              <p className="help-text">
+                1. Drag assets to timeline<br/>
+                2. Click clip to select<br/>
+                3. Drag edges to resize<br/>
+                4. Apply effects
+              </p>
             </div>
           )}
 
           <div className="panel">
-            <h3>⚙️ Settings</h3>
+            <h3>⚙️ Project Settings</h3>
             <label>Duration</label>
             <input type="number" value={duration} onChange={(e) => setDuration(parseInt(e.target.value))} />
             
             <label>FPS</label>
             <select>
               <option>24 FPS</option>
-              <option>30 FPS</option>
+              <option selected>30 FPS</option>
               <option>60 FPS</option>
             </select>
 
             <label>Resolution</label>
             <select>
-              <option>1080p</option>
+              <option selected>1080p</option>
               <option>720p</option>
               <option>4K</option>
             </select>
@@ -317,7 +411,7 @@ function App() {
           {isPlaying ? '⏸' : '▶'}
         </button>
         <button>⏹</button>
-        <span>{formatTime(currentTime)} / {formatTime(duration)}</span>
+        <span className="time-display">{formatTime(currentTime)} / {formatTime(duration)}</span>
         <input 
           type="range" 
           min="0" 
