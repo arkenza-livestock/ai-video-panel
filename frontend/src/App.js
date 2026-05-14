@@ -1,42 +1,30 @@
-import React, { useRef, useEffect } from 'react';
-import { useEditor } from './context/EditorContext';
+import React, { useState, useRef, useEffect } from 'react';
 import ExportDialog from './ExportDialog';
 import SettingsModal from './SettingsModal';
 import AudioMixer from './AudioMixer';
 import './App.css';
 
 function App() {
-  const {
-    timeline,
-    selectedClip,
-    setSelectedClip,
-    currentTime,
-    setCurrentTime,
-    isPlaying,
-    setIsPlaying,
-    duration,
-    setDuration,
-    selectedEffect,
-    setSelectedEffect,
-    showExportDialog,
-    setShowExportDialog,
-    showSettingsModal,
-    setShowSettingsModal,
-    projectSettings,
-    setProjectSettings,
-    handleUndo,
-    handleRedo,
-    deleteClip,
-    addClip,
-    applyEffect,
-    resizeClip,
-    saveResizeClip,
-    historyIndex,
-    history,
-  } = useEditor();
-
-  const [draggedAsset, setDraggedAsset] = React.useState(null);
-  const [resizingClip, setResizingClip] = React.useState(null);
+  const [timeline, setTimeline] = useState([]);
+  const [history, setHistory] = useState([[]]);
+  const [historyIndex, setHistoryIndex] = useState(0);
+  const [selectedClip, setSelectedClip] = useState(null);
+  const [draggedAsset, setDraggedAsset] = useState(null);
+  const [currentTime, setCurrentTime] = useState(0);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [selectedEffect, setSelectedEffect] = useState(null);
+  const [duration, setDuration] = useState(180);
+  const [resizingClip, setResizingClip] = useState(null);
+  const [showExportDialog, setShowExportDialog] = useState(false);
+  const [showSettingsModal, setShowSettingsModal] = useState(false);
+  const [projectSettings, setProjectSettings] = useState({
+    projectName: 'Untitled Project',
+    fps: 30,
+    resolution: '1080p',
+    bitrate: 'high',
+    audioFormat: 'aac',
+    theme: 'dark',
+  });
   const timelineRef = useRef(null);
 
   const assets = [
@@ -55,6 +43,31 @@ function App() {
     { id: 5, name: 'Speed Up', icon: '⚡' },
     { id: 6, name: 'Color Grade', icon: '🎨' },
   ];
+
+  // UNDO/REDO
+  const updateTimeline = (newTimeline) => {
+    const newHistory = history.slice(0, historyIndex + 1);
+    newHistory.push(newTimeline);
+    setHistory(newHistory);
+    setHistoryIndex(newHistory.length - 1);
+    setTimeline(newTimeline);
+  };
+
+  const handleUndo = () => {
+    if (historyIndex > 0) {
+      const newIndex = historyIndex - 1;
+      setHistoryIndex(newIndex);
+      setTimeline(history[newIndex]);
+    }
+  };
+
+  const handleRedo = () => {
+    if (historyIndex < history.length - 1) {
+      const newIndex = historyIndex + 1;
+      setHistoryIndex(newIndex);
+      setTimeline(history[newIndex]);
+    }
+  };
 
   // KEYBOARD SHORTCUTS
   useEffect(() => {
@@ -86,7 +99,9 @@ function App() {
       
       if (e.key === 'Delete' && selectedClip) {
         e.preventDefault();
-        deleteClip(selectedClip.id);
+        const newTimeline = timeline.filter(c => c.id !== selectedClip.id);
+        updateTimeline(newTimeline);
+        setSelectedClip(null);
       }
 
       if (e.key === 'ArrowLeft') {
@@ -106,7 +121,7 @@ function App() {
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isPlaying, selectedClip, currentTime, duration, handleUndo, handleRedo, deleteClip]);
+  }, [isPlaying, selectedClip, currentTime, duration, history, historyIndex]);
 
   const handleDragStart = (asset) => {
     setDraggedAsset(asset);
@@ -127,8 +142,14 @@ function App() {
       effects: [],
       volume: 100,
     };
-    addClip(newClip);
+    updateTimeline([...timeline, newClip]);
     setDraggedAsset(null);
+  };
+
+  const handleDeleteClip = (clipId) => {
+    const newTimeline = timeline.filter(c => c.id !== clipId);
+    updateTimeline(newTimeline);
+    if (selectedClip?.id === clipId) setSelectedClip(null);
   };
 
   const handleTimelineClick = (e) => {
@@ -152,33 +173,43 @@ function App() {
     const deltaPixels = e.clientX - resizingClip.startX;
     const deltaSeconds = deltaPixels / 2;
 
-    if (resizingClip.edge === 'left') {
-      resizeClip(
-        resizingClip.clipId,
-        Math.max(0, clip.startTime + deltaSeconds),
-        Math.max(1, clip.duration - deltaSeconds)
-      );
-    } else {
-      resizeClip(
-        resizingClip.clipId,
-        clip.startTime,
-        Math.max(1, clip.duration + deltaSeconds)
-      );
-    }
+    const updatedTimeline = timeline.map(c => {
+      if (c.id !== resizingClip.clipId) return c;
+      
+      if (resizingClip.edge === 'left') {
+        return {
+          ...c,
+          startTime: Math.max(0, c.startTime + deltaSeconds),
+          duration: Math.max(1, c.duration - deltaSeconds)
+        };
+      } else {
+        return {
+          ...c,
+          duration: Math.max(1, c.duration + deltaSeconds)
+        };
+      }
+    });
     
+    setTimeline(updatedTimeline);
     setResizingClip({ ...resizingClip, startX: e.clientX });
   };
 
   const handleMouseUp = () => {
     if (resizingClip) {
-      saveResizeClip();
+      updateTimeline(timeline);
     }
     setResizingClip(null);
   };
 
   const handleApplyEffect = () => {
     if (!selectedClip || !selectedEffect) return;
-    applyEffect(selectedClip.id, selectedEffect);
+    
+    const updatedTimeline = timeline.map(c => 
+      c.id === selectedClip.id 
+        ? { ...c, effects: [...c.effects, selectedEffect] }
+        : c
+    );
+    updateTimeline(updatedTimeline);
     setSelectedClip({ ...selectedClip, effects: [...selectedClip.effects, selectedEffect] });
   };
 
@@ -192,7 +223,7 @@ function App() {
     return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
   };
 
-  const generateWaveform = () => {
+  const generateWaveform = (type) => {
     return Array.from({ length: 30 }, () => Math.random() * 100);
   };
 
@@ -209,6 +240,7 @@ function App() {
             onClick={handleUndo} 
             disabled={historyIndex <= 0}
             title="Undo (Ctrl+Z)"
+            className={historyIndex <= 0 ? 'disabled' : ''}
           >
             ↶ Undo
           </button>
@@ -216,6 +248,7 @@ function App() {
             onClick={handleRedo}
             disabled={historyIndex >= history.length - 1}
             title="Redo (Ctrl+Y)"
+            className={historyIndex >= history.length - 1 ? 'disabled' : ''}
           >
             ↷ Redo
           </button>
@@ -295,6 +328,7 @@ function App() {
               </span>
             </div>
             
+            {/* TIMELINE SCRUBBER */}
             <div className="timeline-scrubber-container" ref={timelineRef} onClick={handleTimelineClick}>
               <div className="timeline-scrubber" style={{ left: `${(currentTime / duration) * 100}%` }} />
               <div className="timeline-ruler">
@@ -325,7 +359,7 @@ function App() {
                         className="delete-btn"
                         onClick={(e) => {
                           e.stopPropagation();
-                          deleteClip(clip.id);
+                          handleDeleteClip(clip.id);
                         }}
                       >×</button>
                       <div className="clip-right-handle" onMouseDown={(e) => handleResizeStart(e, clip.id, 'right')} />
@@ -349,7 +383,7 @@ function App() {
                       }}
                     >
                       <div className="waveform">
-                        {generateWaveform().map((h, i) => (
+                        {generateWaveform('audio').map((h, i) => (
                           <div key={i} className="waveform-bar" style={{ height: `${h}%` }} />
                         ))}
                       </div>
@@ -357,7 +391,7 @@ function App() {
                         className="delete-btn"
                         onClick={(e) => {
                           e.stopPropagation();
-                          deleteClip(clip.id);
+                          handleDeleteClip(clip.id);
                         }}
                       >×</button>
                     </div>
@@ -380,7 +414,7 @@ function App() {
                       }}
                     >
                       <div className="waveform">
-                        {generateWaveform().map((h, i) => (
+                        {generateWaveform('audio').map((h, i) => (
                           <div key={i} className="waveform-bar" style={{ height: `${h}%` }} />
                         ))}
                       </div>
@@ -388,7 +422,7 @@ function App() {
                         className="delete-btn"
                         onClick={(e) => {
                           e.stopPropagation();
-                          deleteClip(clip.id);
+                          handleDeleteClip(clip.id);
                         }}
                       >×</button>
                     </div>
