@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useEditor } from '../context/EditorContext';
 import '../styles/Header.css';
 
@@ -13,6 +13,7 @@ function Header() {
   } = useEditor();
 
   const [menuOpen, setMenuOpen] = React.useState(null);
+  const [showProjectModal, setShowProjectModal] = useState(false);
 
   const handleMenuClick = (menu) => {
     setMenuOpen(menuOpen === menu ? null : menu);
@@ -20,10 +21,8 @@ function Header() {
 
   const menuItems = {
     File: [
-      { label: 'New Project', icon: '📄' },
-      { label: 'Open Project', icon: '📂' },
-      { label: 'Save Project', icon: '💾' },
-      { label: 'Save As...', icon: '💾' },
+      { label: 'New Project', icon: '📄', action: () => { setShowProjectModal(true); setMenuOpen(null); } },
+      { label: 'Open Project', icon: '📂', action: () => { setShowProjectModal(true); setMenuOpen(null); } },
       { label: 'Recent', icon: '⏱️' },
       { label: 'Exit', icon: '🚪' },
     ],
@@ -113,6 +112,13 @@ function Header() {
           ⚙️ Settings
         </button>
       </div>
+
+      {/* PROJECT MODAL */}
+      {showProjectModal && (
+        <div className="modal-portal">
+          {/* ProjectModal will be rendered here */}
+        </div>
+      )}
     </header>
   );
 }
