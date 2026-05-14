@@ -1,11 +1,4 @@
-
-      />
-    </div>
-  );
-}
-
-export default App;
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import ExportDialog from './ExportDialog';
 import SettingsModal from './SettingsModal';
 import './App.css';
@@ -47,6 +40,55 @@ function App() {
     { id: 5, name: 'Speed Up', icon: '⚡' },
     { id: 6, name: 'Color Grade', icon: '🎨' },
   ];
+
+  // KEYBOARD SHORTCUTS
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      // Ctrl+E → Export
+      if (e.ctrlKey && e.key === 'e') {
+        e.preventDefault();
+        setShowExportDialog(true);
+      }
+      
+      // Ctrl+, → Settings
+      if (e.ctrlKey && e.key === ',') {
+        e.preventDefault();
+        setShowSettingsModal(true);
+      }
+      
+      // Space → Play/Pause
+      if (e.key === ' ') {
+        e.preventDefault();
+        setIsPlaying(!isPlaying);
+      }
+      
+      // Delete → Delete selected clip
+      if (e.key === 'Delete' && selectedClip) {
+        e.preventDefault();
+        handleDeleteClip(selectedClip.id);
+      }
+
+      // Arrow Left → Rewind 1 second
+      if (e.key === 'ArrowLeft') {
+        e.preventDefault();
+        setCurrentTime(Math.max(0, currentTime - 1));
+      }
+
+      // Arrow Right → Forward 1 second
+      if (e.key === 'ArrowRight') {
+        e.preventDefault();
+        setCurrentTime(Math.min(duration, currentTime + 1));
+      }
+
+      // D → Deselect clip
+      if (e.key === 'd') {
+        setSelectedClip(null);
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isPlaying, selectedClip, currentTime, duration]);
 
   const handleDragStart = (asset) => {
     setDraggedAsset(asset);
@@ -157,10 +199,10 @@ function App() {
       <header className="header">
         <h1>🌙 {projectSettings.projectName}</h1>
         <div className="header-menu">
-          <button>File</button>
-          <button>Edit</button>
-          <button>View</button>
-          <button onClick={() => setShowSettingsModal(true)}>⚙️ Settings</button>
+          <button title="File">File</button>
+          <button title="Edit">Edit</button>
+          <button title="View">View</button>
+          <button onClick={() => setShowSettingsModal(true)} title="Settings (Ctrl+,)">⚙️ Settings</button>
         </div>
       </header>
 
@@ -193,16 +235,16 @@ function App() {
           <div className="panel">
             <h3>🎨 Colors</h3>
             <div className="colors">
-              <button style={{ backgroundColor: '#FF6B6B' }} />
-              <button style={{ backgroundColor: '#4ECDC4' }} />
-              <button style={{ backgroundColor: '#45B7D1' }} />
-              <button style={{ backgroundColor: '#FFA502' }} />
+              <button style={{ backgroundColor: '#FF6B6B' }} title="Red" />
+              <button style={{ backgroundColor: '#4ECDC4' }} title="Teal" />
+              <button style={{ backgroundColor: '#45B7D1' }} title="Blue" />
+              <button style={{ backgroundColor: '#FFA502' }} title="Orange" />
             </div>
           </div>
 
           <div className="panel">
             <h3>📤 Export</h3>
-            <button className="export-btn" onClick={() => setShowExportDialog(true)}>
+            <button className="export-btn" onClick={() => setShowExportDialog(true)} title="Export (Ctrl+E)">
               🚀 Export Video
             </button>
           </div>
@@ -398,12 +440,14 @@ function App() {
             </>
           ) : (
             <div className="panel">
-              <h3>ℹ️ Help</h3>
+              <h3>⌨️ Shortcuts</h3>
               <p className="help-text">
-                1. Drag assets to timeline<br/>
-                2. Click clip to select<br/>
-                3. Drag edges to resize<br/>
-                4. Apply effects
+                <strong>Space</strong> - Play/Pause<br/>
+                <strong>Del</strong> - Delete clip<br/>
+                <strong>←/→</strong> - Rewind/Forward<br/>
+                <strong>D</strong> - Deselect<br/>
+                <strong>Ctrl+E</strong> - Export<br/>
+                <strong>Ctrl+,</strong> - Settings
               </p>
             </div>
           )}
@@ -432,10 +476,10 @@ function App() {
 
       {/* FOOTER */}
       <footer className="footer">
-        <button className="play-btn" onClick={() => setIsPlaying(!isPlaying)}>
+        <button className="play-btn" onClick={() => setIsPlaying(!isPlaying)} title="Play/Pause (Space)">
           {isPlaying ? '⏸' : '▶'}
         </button>
-        <button>⏹</button>
+        <button title="Stop">⏹</button>
         <span className="time-display">{formatTime(currentTime)} / {formatTime(duration)}</span>
         <input 
           type="range" 
@@ -444,10 +488,11 @@ function App() {
           value={currentTime} 
           onChange={(e) => setCurrentTime(parseInt(e.target.value))}
           className="slider"
+          title="Timeline scrubber"
         />
-        <button className="volume-btn">🔊</button>
-        <button className="mic-btn">🎙️</button>
-        <button className="export-final" onClick={() => setShowExportDialog(true)}>
+        <button className="volume-btn" title="Volume">🔊</button>
+        <button className="mic-btn" title="Microphone">🎙️</button>
+        <button className="export-final" onClick={() => setShowExportDialog(true)} title="Export (Ctrl+E)">
           🚀 Export
         </button>
       </footer>
