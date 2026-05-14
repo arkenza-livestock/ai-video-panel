@@ -1,5 +1,13 @@
+
+      />
+    </div>
+  );
+}
+
+export default App;
 import React, { useState, useRef } from 'react';
 import ExportDialog from './ExportDialog';
+import SettingsModal from './SettingsModal';
 import './App.css';
 
 function App() {
@@ -12,6 +20,15 @@ function App() {
   const [duration, setDuration] = useState(180);
   const [resizingClip, setResizingClip] = useState(null);
   const [showExportDialog, setShowExportDialog] = useState(false);
+  const [showSettingsModal, setShowSettingsModal] = useState(false);
+  const [projectSettings, setProjectSettings] = useState({
+    projectName: 'Untitled Project',
+    fps: 30,
+    resolution: '1080p',
+    bitrate: 'high',
+    audioFormat: 'aac',
+    theme: 'dark',
+  });
   const timelineRef = useRef(null);
 
   const assets = [
@@ -117,6 +134,10 @@ function App() {
     setSelectedClip({ ...selectedClip, effects: [...selectedClip.effects, selectedEffect] });
   };
 
+  const handleSaveSettings = (newSettings) => {
+    setProjectSettings(newSettings);
+  };
+
   const formatTime = (sec) => {
     const m = Math.floor(sec / 60);
     const s = Math.floor(sec % 60);
@@ -134,12 +155,12 @@ function App() {
   return (
     <div className="app" onMouseMove={handleMouseMove} onMouseUp={handleMouseUp}>
       <header className="header">
-        <h1>🌙 Atmosfer Stüdyo</h1>
+        <h1>🌙 {projectSettings.projectName}</h1>
         <div className="header-menu">
           <button>File</button>
           <button>Edit</button>
           <button>View</button>
-          <button>Help</button>
+          <button onClick={() => setShowSettingsModal(true)}>⚙️ Settings</button>
         </div>
       </header>
 
@@ -431,11 +452,18 @@ function App() {
         </button>
       </footer>
 
-      {/* EXPORT DIALOG */}
+      {/* DIALOGS */}
       <ExportDialog 
         isOpen={showExportDialog}
         onClose={() => setShowExportDialog(false)}
         duration={duration}
+      />
+
+      <SettingsModal 
+        isOpen={showSettingsModal}
+        onClose={() => setShowSettingsModal(false)}
+        onSave={handleSaveSettings}
+        projectSettings={projectSettings}
       />
     </div>
   );
