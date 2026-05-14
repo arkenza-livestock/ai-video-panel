@@ -7,10 +7,12 @@ services:
       dockerfile: Dockerfile
     container_name: atmosfer-frontend
     ports:
-      - "3012:3000"  # 3011 → 3012 değiştir
+      - "3012:3000"  # ✅ 3011 → 3012
     environment:
-      - REACT_APP_API_URL=http://localhost:8000
+      - REACT_APP_API_URL=http://localhost:8001
     restart: unless-stopped
+    depends_on:
+      - backend
 
   backend:
     build:
@@ -18,8 +20,11 @@ services:
       dockerfile: Dockerfile
     container_name: atmosfer-backend
     ports:
-      - "8000:8000"
+      - "8001:8000"  # ✅ 8000 → 8001 (safe)
     environment:
       - API_HOST=0.0.0.0
       - API_PORT=8000
     restart: unless-stopped
+    volumes:
+      - ./backend/projects:/app/projects
+      - ./backend/exports:/app/exports
