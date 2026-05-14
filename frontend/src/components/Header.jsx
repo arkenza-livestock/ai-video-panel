@@ -1,8 +1,8 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { useEditor } from '../context/EditorContext';
 import '../styles/Header.css';
 
-function Header() {
+function Header({ showProjectModal, setShowProjectModal }) {
   const {
     projectSettings,
     handleUndo,
@@ -10,10 +10,10 @@ function Header() {
     historyIndex,
     history,
     setShowSettingsModal,
+    saveProject,
   } = useEditor();
 
   const [menuOpen, setMenuOpen] = React.useState(null);
-  const [showProjectModal, setShowProjectModal] = useState(false);
 
   const handleMenuClick = (menu) => {
     setMenuOpen(menuOpen === menu ? null : menu);
@@ -23,12 +23,13 @@ function Header() {
     File: [
       { label: 'New Project', icon: '📄', action: () => { setShowProjectModal(true); setMenuOpen(null); } },
       { label: 'Open Project', icon: '📂', action: () => { setShowProjectModal(true); setMenuOpen(null); } },
+      { label: 'Save', icon: '💾', action: () => { saveProject(); setMenuOpen(null); } },
       { label: 'Recent', icon: '⏱️' },
       { label: 'Exit', icon: '🚪' },
     ],
     Edit: [
-      { label: 'Undo', icon: '↶', action: handleUndo },
-      { label: 'Redo', icon: '↷', action: handleRedo },
+      { label: 'Undo', icon: '↶', action: () => { handleUndo(); setMenuOpen(null); } },
+      { label: 'Redo', icon: '↷', action: () => { handleRedo(); setMenuOpen(null); } },
       { label: 'Cut', icon: '✂️' },
       { label: 'Copy', icon: '📋' },
       { label: 'Paste', icon: '📌' },
@@ -112,13 +113,6 @@ function Header() {
           ⚙️ Settings
         </button>
       </div>
-
-      {/* PROJECT MODAL */}
-      {showProjectModal && (
-        <div className="modal-portal">
-          {/* ProjectModal will be rendered here */}
-        </div>
-      )}
     </header>
   );
 }
