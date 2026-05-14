@@ -6,6 +6,7 @@ import Timeline from './components/Timeline';
 import Canvas from './components/Canvas';
 import AssetPanel from './components/AssetPanel';
 import Inspector from './components/Inspector';
+import Footer from './components/Footer';
 import './App.css';
 
 function App() {
@@ -86,12 +87,6 @@ function App() {
     setProjectSettings(newSettings);
   };
 
-  const formatTime = (sec) => {
-    const m = Math.floor(sec / 60);
-    const s = Math.floor(sec % 60);
-    return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
-  };
-
   return (
     <div className="app">
       <header className="header">
@@ -127,28 +122,7 @@ function App() {
         <Inspector />
       </div>
 
-      {/* FOOTER */}
-      <footer className="footer">
-        <button className="play-btn" onClick={() => setIsPlaying(!isPlaying)} title="Play/Pause (Space)">
-          {isPlaying ? '⏸' : '▶'}
-        </button>
-        <button title="Stop">⏹</button>
-        <span className="time-display">{formatTime(currentTime)} / {formatTime(duration)}</span>
-        <input 
-          type="range" 
-          min="0" 
-          max={duration} 
-          value={currentTime} 
-          onChange={(e) => setCurrentTime(parseInt(e.target.value))}
-          className="slider"
-          title="Timeline scrubber"
-        />
-        <button className="volume-btn" title="Volume">🔊</button>
-        <button className="mic-btn" title="Microphone">🎙️</button>
-        <button className="export-final" onClick={() => setShowExportDialog(true)} title="Export (Ctrl+E)">
-          🚀 Export
-        </button>
-      </footer>
+      <Footer />
 
       {/* DIALOGS */}
       <ExportDialog 
