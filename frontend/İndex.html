@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Atmosfer Stüdyo</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: system-ui, -apple-system, sans-serif;
+            background: linear-gradient(135deg, #0a0a0f 0%, #1a1a2e 100%);
+            color: white;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        .container {
+            text-align: center;
+            padding: 2rem;
+        }
+        
+        h1 {
+            font-size: 3rem;
+            background: linear-gradient(135deg, #a855f7, #ec4899);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 1rem;
+        }
+        
+        .status {
+            background: rgba(255,255,255,0.1);
+            padding: 1rem 2rem;
+            border-radius: 16px;
+            margin: 2rem 0;
+        }
+        
+        .online {
+            color: #10b981;
+            font-weight: bold;
+        }
+        
+        button {
+            background: linear-gradient(135deg, #a855f7, #ec4899);
+            border: none;
+            padding: 12px 24px;
+            border-radius: 12px;
+            color: white;
+            font-size: 1rem;
+            cursor: pointer;
+            margin-top: 1rem;
+        }
+        
+        .message {
+            margin-top: 2rem;
+            padding: 1rem;
+            background: rgba(0,0,0,0.3);
+            border-radius: 8px;
+        }
+        
+        code {
+            background: #1a1a2e;
+            padding: 0.5rem;
+            border-radius: 8px;
+            display: inline-block;
+            margin-top: 0.5rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎬 Atmosfer Stüdyo</h1>
+        <p>Profesyonel Video Otomasyon Sistemi</p>
+        
+        <div class="status">
+            🔌 Backend Bağlantısı: 
+            <span id="status" class="online">Kontrol ediliyor...</span>
+        </div>
+        
+        <button onclick="testAPI()">📡 API'yi Test Et</button>
+        
+        <div id="response" class="message"></div>
+    </div>
+    
+    <script>
+        const API_URL = '/api';
+        
+        async function testAPI() {
+            const responseDiv = document.getElementById('response');
+            responseDiv.innerHTML = '⏳ Bekleniyor...';
+            
+            try {
+                const res = await fetch(`${API_URL}/`);
+                const data = await res.json();
+                responseDiv.innerHTML = `
+                    ✅ API Yanıtı:<br>
+                    <code>${JSON.stringify(data, null, 2)}</code>
+                `;
+            } catch (error) {
+                responseDiv.innerHTML = `❌ Hata: ${error.message}`;
+            }
+        }
+        
+        async function checkStatus() {
+            const statusSpan = document.getElementById('status');
+            try {
+                const res = await fetch(`${API_URL}/`);
+                if (res.ok) {
+                    statusSpan.innerHTML = '✅ Bağlantı Aktif';
+                    statusSpan.style.color = '#10b981';
+                } else {
+                    statusSpan.innerHTML = '⚠️ Bağlantı Sorunu';
+                }
+            } catch (error) {
+                statusSpan.innerHTML = '❌ Bağlantı Yok';
+                statusSpan.style.color = '#ef4444';
+            }
+        }
+        
+        checkStatus();
+        setInterval(checkStatus, 30000);
+    </script>
+</body>
+</html>
