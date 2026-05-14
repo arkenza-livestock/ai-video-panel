@@ -28,60 +28,54 @@ function App() {
     handleUndo,
     handleRedo,
     deleteClip,
+    apiReady,
+    apiError,
+    isLoading,
   } = useEditor();
 
   // KEYBOARD SHORTCUTS
   useEffect(() => {
     const handleKeyDown = (e) => {
-      // Ctrl+E → Export
       if (e.ctrlKey && e.key === 'e') {
         e.preventDefault();
         setShowExportDialog(true);
       }
       
-      // Ctrl+, → Settings
       if (e.ctrlKey && e.key === ',') {
         e.preventDefault();
         setShowSettingsModal(true);
       }
       
-      // Ctrl+Z → Undo
       if (e.ctrlKey && e.key === 'z') {
         e.preventDefault();
         handleUndo();
       }
 
-      // Ctrl+Y → Redo
       if (e.ctrlKey && e.key === 'y') {
         e.preventDefault();
         handleRedo();
       }
       
-      // Space → Play/Pause
       if (e.key === ' ') {
         e.preventDefault();
         setIsPlaying(!isPlaying);
       }
       
-      // Delete → Delete selected clip
       if (e.key === 'Delete' && selectedClip) {
         e.preventDefault();
         deleteClip(selectedClip.id);
       }
 
-      // Arrow Left → Rewind 1s
       if (e.key === 'ArrowLeft') {
         e.preventDefault();
         setCurrentTime(Math.max(0, currentTime - 1));
       }
 
-      // Arrow Right → Forward 1s
       if (e.key === 'ArrowRight') {
         e.preventDefault();
         setCurrentTime(Math.min(duration, currentTime + 1));
       }
 
-      // D → Deselect clip
       if (e.key === 'd' || e.key === 'D') {
         setSelectedClip(null);
       }
@@ -95,43 +89,65 @@ function App() {
     setProjectSettings(newSettings);
   };
 
+  // Show API status
+  if (isLoading) {
+    return (
+      <div className="app loading-screen">
+        <div className="loading-content">
+          <p>🚀 Initializing Atmosfer Studio...</p>
+          <div className="loading-spinner"></div>
+        </div>
+      </div>
+    );
+  }
+
+  if (apiError && !apiReady) {
+    return (
+      <div className="app error-screen">
+        <div className="error-content">
+          <p>⚠️ Backend Connection Error</p>
+          <p className="error-message">{apiError}</p>
+          <p className="error-hint">Make sure the backend is running on http://localhost:8000</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="app">
-      {/* HEADER */}
       <Header />
 
-      {/* MAIN EDITOR CONTAINER */}
       <div className="editor-container">
-        {/* LEFT SIDEBAR - ASSETS */}
         <AssetPanel />
-
-        {/* CENTER - CANVAS + TIMELINE */}
         <main className="editor-main">
           <Canvas />
           <Timeline />
         </main>
-
-        {/* RIGHT SIDEBAR - INSPECTOR */}
         <Inspector />
       </div>
 
-      {/* FOOTER - PLAYBACK CONTROLS */}
       <Footer />
 
-      {/* EXPORT DIALOG */}
+      {/* DIALOGS */}
       <ExportDialog 
         isOpen={showExportDialog}
         onClose={() => setShowExportDialog(false)}
         duration={duration}
       />
 
-      {/* SETTINGS MODAL */}
       <SettingsModal 
         isOpen={showSettingsModal}
         onClose={() => setShowSettingsModal(false)}
         onSave={handleSaveSettings}
         projectSettings={projectSettings}
       />
+
+      {/* API Error Notification */}
+      {apiError && apiReady && (
+        <div className="api-error-notification">
+          <span>⚠️ {apiError}</span>
+        </div>
+      )}
     </div>
   );
 }
