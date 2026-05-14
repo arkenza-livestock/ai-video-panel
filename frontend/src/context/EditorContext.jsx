@@ -1,4 +1,6 @@
-import React, { createContext, useState, useCallback } from 'react';
+import React, { createContext, useState, useCallback, useEffect } from 'react';
+import projectService from '../services/projectService';
+import healthService from '../services/healthService';
 
 export const EditorContext = createContext();
 
@@ -21,6 +23,28 @@ export function EditorProvider({ children }) {
     audioFormat: 'aac',
     theme: 'dark',
   });
+
+  // API State
+  const [apiReady, setApiReady] = useState(false);
+  const [apiError, setApiError] = useState(null);
+  const [currentProjectId, setCurrentProjectId] = useState(null);
+  const [isSaving, setIsSaving] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+
+  // Check API health on mount
+  useEffect(() => {
+    const checkAPI = async () => {
+      setIsLoading(true);
+      const isReady = await healthService.waitForAPI();
+      setApiReady(isReady);
+      if (!isReady) {
+        setApiError('Backend API is not available');
+      }
+      setIsLoading(false);
+    };
+
+    checkAPI();
+  }, []);
 
   // UNDO/REDO
   const updateTimeline = useCallback((newTimeline) => {
@@ -70,11 +94,125 @@ export function EditorProvider({ children }) {
       c.id === clipId ? { ...c, startTime, duration } : c
     );
     setTimeline(updatedTimeline);
-  }, [timeline]);
+  }, []);
 
   const saveResizeClip = useCallback(() => {
     updateTimeline(timeline);
   }, [timeline, updateTimeline]);
+
+  // PROJECT OPERATIONS
+  const createNewProject = useCallback(async () => {
+    if (!apiReady) {
+      setApiError('API not ready');
+      return null;
+    }
+
+    try {
+      setIsLoading(true);
+      const result = await projectService.createProject(projectSettings);
+      setCurrentProjectId(result.id);
+      setApiError(null);
+      return result.id;
+    } catch (error) {
+      setApiError(error.message);
+      console.error('Error creating project:', error);
+      return null;
+    } finally {
+      setIsLoading(false);
+    }
+  }, [projectSettings, apiReady]);
+
+  const loadProject = useCallback(async (projectId) => {
+    if (!apiReady) {
+      setApiError('API not ready');
+      return false;
+    }
+
+    try {
+      setIsLoading(true);
+      const project = await projectService.getProject(projectId);
+      
+      setCurrentProjectId(projectId);
+      setProjectSettings(project.settings);
+      setTimeline(project.timeline || []);
+      setHistory([project.timeline || []]);
+      setHistoryIndex(0);
+      setApiError(null);
+      
+      return true;
+    } catch (error) {
+      setApiError(error.message);
+      console.error('Error loading project:', error);
+      return false;
+    } finally {
+      setIsLoading(false);
+    }
+  }, [apiReady]);
+
+  const saveProject = useCallback(async () => {
+    if (!apiReady || !currentProjectId) {
+      setApiError('Cannot save: API not ready or no project loaded');
+      return false;
+    }
+
+    try {
+      setIsSaving(true);
+      await projectService.saveTimeline(currentProjectId, {
+        clips: timeline,
+        duration,
+        fps: projectSettings.fps,
+        resolution: projectSettings.resolution,
+      });
+      
+      setApiError(null);
+      return true;
+    } catch (error) {
+      setApiError(error.message);
+      console.error('Error saving project:', error);
+      return false;
+    } finally {
+      setIsSaving(false);
+    }
+  }, [currentProjectId, timeline, duration, projectSettings, apiReady]);
+
+  const deleteProject = useCallback(async (projectId) => {
+    if (!apiReady) {
+      setApiError('API not ready');
+      return false;
+    }
+
+    try {
+      setIsLoading(true);
+      await projectService.deleteProject(projectId);
+      
+      if (currentProjectId === projectId) {
+        setCurrentProjectId(null);
+        setTimeline([]);
+        setHistory([[]]);
+        setHistoryIndex(0);
+      }
+      
+      setApiError(null);
+      return true;
+    } catch (error) {
+      setApiError(error.message);
+      console.error('Error deleting project:', error);
+      return false;
+    } finally {
+      setIsLoading(false);
+    }
+  }, [currentProjectId, apiReady]);
+
+  // AUTO-SAVE (every 30 seconds)
+  useEffect(() => {
+    if (!apiReady || !currentProjectId) return;
+
+    const autoSaveInterval = setInterval(() => {
+      saveProject();
+    }, 30000);
+
+    return () => clearInterval(autoSaveInterval);
+  }, [apiReady, currentProjectId, saveProject]);
 
   const value = {
     // State
@@ -99,15 +237,31 @@ export function EditorProvider({ children }) {
     projectSettings,
     setProjectSettings,
 
-    // Methods
+    // API State
+    apiReady,
+    apiError,
+    setApiError,
+    currentProjectId,
+    isSaving,
+    isLoading,
+
+    // Methods - Undo/Redo
     updateTimeline,
     handleUndo,
     handleRedo,
+
+    // Methods - Clip Operations
     deleteClip,
     addClip,
     applyEffect,
     resizeClip,
     saveResizeClip,
+
+    // Methods - Project Operations
+    createNewProject,
+    loadProject,
+    saveProject,
+    deleteProject,
   };
 
   return (
