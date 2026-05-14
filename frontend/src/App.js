@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import ExportDialog from './ExportDialog';
 import SettingsModal from './SettingsModal';
+import AudioMixer from './AudioMixer';
 import './App.css';
 
 function App() {
@@ -71,37 +72,31 @@ function App() {
   // KEYBOARD SHORTCUTS
   useEffect(() => {
     const handleKeyDown = (e) => {
-      // Ctrl+E → Export
       if (e.ctrlKey && e.key === 'e') {
         e.preventDefault();
         setShowExportDialog(true);
       }
       
-      // Ctrl+, → Settings
       if (e.ctrlKey && e.key === ',') {
         e.preventDefault();
         setShowSettingsModal(true);
       }
       
-      // Ctrl+Z → Undo
       if (e.ctrlKey && e.key === 'z') {
         e.preventDefault();
         handleUndo();
       }
 
-      // Ctrl+Y → Redo
       if (e.ctrlKey && e.key === 'y') {
         e.preventDefault();
         handleRedo();
       }
       
-      // Space → Play/Pause
       if (e.key === ' ') {
         e.preventDefault();
         setIsPlaying(!isPlaying);
       }
       
-      // Delete → Delete selected clip
       if (e.key === 'Delete' && selectedClip) {
         e.preventDefault();
         const newTimeline = timeline.filter(c => c.id !== selectedClip.id);
@@ -109,19 +104,16 @@ function App() {
         setSelectedClip(null);
       }
 
-      // Arrow Left → Rewind 1 second
       if (e.key === 'ArrowLeft') {
         e.preventDefault();
         setCurrentTime(Math.max(0, currentTime - 1));
       }
 
-      // Arrow Right → Forward 1 second
       if (e.key === 'ArrowRight') {
         e.preventDefault();
         setCurrentTime(Math.min(duration, currentTime + 1));
       }
 
-      // D → Deselect clip
       if (e.key === 'd') {
         setSelectedClip(null);
       }
@@ -500,19 +492,22 @@ function App() {
               </div>
             </>
           ) : (
-            <div className="panel">
-              <h3>⌨️ Shortcuts</h3>
-              <p className="help-text">
-                <strong>Space</strong> - Play/Pause<br/>
-                <strong>Del</strong> - Delete clip<br/>
-                <strong>←/→</strong> - Rewind/Forward<br/>
-                <strong>D</strong> - Deselect<br/>
-                <strong>Ctrl+Z</strong> - Undo<br/>
-                <strong>Ctrl+Y</strong> - Redo<br/>
-                <strong>Ctrl+E</strong> - Export<br/>
-                <strong>Ctrl+,</strong> - Settings
-              </p>
-            </div>
+            <>
+              <AudioMixer clips={timeline} />
+              <div className="panel">
+                <h3>⌨️ Shortcuts</h3>
+                <p className="help-text">
+                  <strong>Space</strong> - Play/Pause<br/>
+                  <strong>Del</strong> - Delete clip<br/>
+                  <strong>←/→</strong> - Rewind/Forward<br/>
+                  <strong>D</strong> - Deselect<br/>
+                  <strong>Ctrl+Z</strong> - Undo<br/>
+                  <strong>Ctrl+Y</strong> - Redo<br/>
+                  <strong>Ctrl+E</strong> - Export<br/>
+                  <strong>Ctrl+,</strong> - Settings
+                </p>
+              </div>
+            </>
           )}
 
           <div className="panel">
