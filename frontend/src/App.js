@@ -2,6 +2,7 @@ import React, { useEffect } from 'react';
 import { useEditor } from './context/EditorContext';
 import ExportDialog from './ExportDialog';
 import SettingsModal from './SettingsModal';
+import Header from './components/Header';
 import Timeline from './components/Timeline';
 import Canvas from './components/Canvas';
 import AssetPanel from './components/AssetPanel';
@@ -27,8 +28,6 @@ function App() {
     handleUndo,
     handleRedo,
     deleteClip,
-    historyIndex,
-    history,
   } = useEditor();
 
   // KEYBOARD SHORTCUTS
@@ -89,29 +88,7 @@ function App() {
 
   return (
     <div className="app">
-      <header className="header">
-        <h1>🌙 {projectSettings.projectName}</h1>
-        <div className="header-menu">
-          <button 
-            onClick={handleUndo} 
-            disabled={historyIndex <= 0}
-            title="Undo (Ctrl+Z)"
-          >
-            ↶ Undo
-          </button>
-          <button 
-            onClick={handleRedo}
-            disabled={historyIndex >= history.length - 1}
-            title="Redo (Ctrl+Y)"
-          >
-            ↷ Redo
-          </button>
-          <button title="File">File</button>
-          <button title="Edit">Edit</button>
-          <button title="View">View</button>
-          <button onClick={() => setShowSettingsModal(true)} title="Settings (Ctrl+,)">⚙️ Settings</button>
-        </div>
-      </header>
+      <Header />
 
       <div className="editor-container">
         <AssetPanel />
