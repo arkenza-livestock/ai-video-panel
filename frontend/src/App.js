@@ -1,16 +1,15 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect } from 'react';
 import { useEditor } from './context/EditorContext';
 import ExportDialog from './ExportDialog';
 import SettingsModal from './SettingsModal';
-import AudioMixer from './AudioMixer';
 import Timeline from './components/Timeline';
 import Canvas from './components/Canvas';
 import AssetPanel from './components/AssetPanel';
+import Inspector from './components/Inspector';
 import './App.css';
 
 function App() {
   const {
-    timeline,
     selectedClip,
     setSelectedClip,
     currentTime,
@@ -18,9 +17,6 @@ function App() {
     isPlaying,
     setIsPlaying,
     duration,
-    setDuration,
-    selectedEffect,
-    setSelectedEffect,
     showExportDialog,
     setShowExportDialog,
     showSettingsModal,
@@ -30,20 +26,9 @@ function App() {
     handleUndo,
     handleRedo,
     deleteClip,
-    addClip,
-    applyEffect,
     historyIndex,
     history,
   } = useEditor();
-
-  const effects = [
-    { id: 1, name: 'Fade In', icon: '✨' },
-    { id: 2, name: 'Fade Out', icon: '✨' },
-    { id: 3, name: 'Zoom', icon: '🔍' },
-    { id: 4, name: 'Blur', icon: '🌫️' },
-    { id: 5, name: 'Speed Up', icon: '⚡' },
-    { id: 6, name: 'Color Grade', icon: '🎨' },
-  ];
 
   // KEYBOARD SHORTCUTS
   useEffect(() => {
@@ -97,12 +82,6 @@ function App() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [isPlaying, selectedClip, currentTime, duration, handleUndo, handleRedo, deleteClip]);
 
-  const handleApplyEffect = () => {
-    if (!selectedClip || !selectedEffect) return;
-    applyEffect(selectedClip.id, selectedEffect);
-    setSelectedClip({ ...selectedClip, effects: [...selectedClip.effects, selectedEffect] });
-  };
-
   const handleSaveSettings = (newSettings) => {
     setProjectSettings(newSettings);
   };
@@ -140,113 +119,12 @@ function App() {
       </header>
 
       <div className="editor-container">
-        
-        {/* LEFT SIDEBAR */}
         <AssetPanel />
-
-        {/* CENTER */}
         <main className="editor-main">
           <Canvas />
           <Timeline />
         </main>
-
-        {/* RIGHT SIDEBAR */}
-        <aside className="sidebar sidebar-right">
-          
-          {selectedClip ? (
-            <>
-              <div className="panel">
-                <h3>📋 Clip Info</h3>
-                <div className="clip-info-grid">
-                  <div>
-                    <label>Name</label>
-                    <p>{selectedClip.name}</p>
-                  </div>
-                  <div>
-                    <label>Duration</label>
-                    <p>{formatTime(selectedClip.duration)}</p>
-                  </div>
-                  <div>
-                    <label>Start Time</label>
-                    <p>{formatTime(selectedClip.startTime)}</p>
-                  </div>
-                  <div>
-                    <label>Volume</label>
-                    <input type="range" min="0" max="100" defaultValue={selectedClip.volume} />
-                  </div>
-                </div>
-              </div>
-
-              <div className="panel">
-                <h3>✨ Add Effects</h3>
-                {effects.map(effect => (
-                  <button
-                    key={effect.id}
-                    className={`effect-btn ${selectedEffect?.id === effect.id ? 'active' : ''}`}
-                    onClick={() => setSelectedEffect(effect)}
-                  >
-                    {effect.icon} {effect.name}
-                  </button>
-                ))}
-                <button className="apply-effect-btn" onClick={handleApplyEffect}>
-                  ➕ Apply
-                </button>
-              </div>
-
-              <div className="panel">
-                <h3>📊 Applied Effects</h3>
-                {selectedClip.effects && selectedClip.effects.length > 0 ? (
-                  <div className="effects-list">
-                    {selectedClip.effects.map((eff, i) => (
-                      <div key={i} className="effect-badge">
-                        {eff.icon} {eff.name}
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <p className="empty-state">No effects</p>
-                )}
-              </div>
-            </>
-          ) : (
-            <>
-              <AudioMixer clips={timeline} />
-              <div className="panel">
-                <h3>⌨️ Shortcuts</h3>
-                <p className="help-text">
-                  <strong>Space</strong> - Play/Pause<br/>
-                  <strong>Del</strong> - Delete clip<br/>
-                  <strong>←/→</strong> - Rewind/Forward<br/>
-                  <strong>D</strong> - Deselect<br/>
-                  <strong>Ctrl+Z</strong> - Undo<br/>
-                  <strong>Ctrl+Y</strong> - Redo<br/>
-                  <strong>Ctrl+E</strong> - Export<br/>
-                  <strong>Ctrl+,</strong> - Settings
-                </p>
-              </div>
-            </>
-          )}
-
-          <div className="panel">
-            <h3>⚙️ Project Settings</h3>
-            <label>Duration</label>
-            <input type="number" value={duration} onChange={(e) => setDuration(parseInt(e.target.value))} />
-            
-            <label>FPS</label>
-            <select>
-              <option>24 FPS</option>
-              <option selected>30 FPS</option>
-              <option>60 FPS</option>
-            </select>
-
-            <label>Resolution</label>
-            <select>
-              <option selected>1080p</option>
-              <option>720p</option>
-              <option>4K</option>
-            </select>
-          </div>
-        </aside>
+        <Inspector />
       </div>
 
       {/* FOOTER */}
