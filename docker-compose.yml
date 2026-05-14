@@ -7,7 +7,7 @@ services:
       dockerfile: Dockerfile
     container_name: frontend
     ports:
-      - "3009:3000"
+      - "3011:3000"
     environment:
       - REACT_APP_API_URL=http://localhost:8000
     networks:
