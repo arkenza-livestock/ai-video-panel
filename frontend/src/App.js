@@ -9,6 +9,7 @@ function App() {
   const [isPlaying, setIsPlaying] = useState(false);
   const [selectedEffect, setSelectedEffect] = useState(null);
   const [duration, setDuration] = useState(180);
+  const [trimMode, setTrimMode] = useState(false);
 
   const assets = [
     { id: 1, name: 'Video 1', type: 'video', icon: '🎬', duration: 30 },
@@ -24,7 +25,7 @@ function App() {
     { id: 3, name: 'Zoom', icon: '🔍' },
     { id: 4, name: 'Blur', icon: '🌫️' },
     { id: 5, name: 'Speed Up', icon: '⚡' },
-    { id: 6, name: 'Color', icon: '🎨' },
+    { id: 6, name: 'Color Grade', icon: '🎨' },
   ];
 
   const handleDragStart = (asset) => {
@@ -42,7 +43,9 @@ function App() {
       ...draggedAsset,
       track: track,
       startTime: currentTime,
-      effects: []
+      effects: [],
+      trimStart: 0,
+      trimEnd: draggedAsset.duration
     };
     setTimeline([...timeline, newClip]);
     setDraggedAsset(null);
@@ -50,6 +53,28 @@ function App() {
 
   const handleDeleteClip = (clipId) => {
     setTimeline(timeline.filter(c => c.id !== clipId));
+    if (selectedClip?.id === clipId) setSelectedClip(null);
+  };
+
+  const handleApplyEffect = () => {
+    if (!selectedClip || !selectedEffect) return;
+    
+    const updatedTimeline = timeline.map(c => 
+      c.id === selectedClip.id 
+        ? { ...c, effects: [...c.effects, selectedEffect] }
+        : c
+    );
+    setTimeline(updatedTimeline);
+    setSelectedClip({ ...selectedClip, effects: [...selectedClip.effects, selectedEffect] });
+  };
+
+  const handleTrimClip = (clipId, start, end) => {
+    const updatedTimeline = timeline.map(c =>
+      c.id === clipId
+        ? { ...c, trimStart: start, trimEnd: end }
+        : c
+    );
+    setTimeline(updatedTimeline);
   };
 
   const formatTime = (sec) => {
@@ -121,7 +146,12 @@ function App() {
           <div className="canvas-container">
             <div className="canvas">
               <p>▶ Video Preview</p>
-              {selectedClip && <p className="selected-clip">{selectedClip.name}</p>}
+              {selectedClip && (
+                <div className="clip-preview">
+                  <p className="clip-name">{selectedClip.name}</p>
+                  <p className="clip-duration">{formatTime(selectedClip.trimEnd - selectedClip.trimStart)}</p>
+                </div>
+              )}
             </div>
           </div>
 
@@ -135,13 +165,16 @@ function App() {
                   {videoClips.map(clip => (
                     <div 
                       key={clip.id}
-                      className="clip video-clip"
+                      className={`clip video-clip ${selectedClip?.id === clip.id ? 'selected' : ''}`}
                       onClick={() => setSelectedClip(clip)}
                     >
                       <span>{clip.name}</span>
                       <button 
                         className="delete-btn"
-                        onClick={() => handleDeleteClip(clip.id)}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDeleteClip(clip.id);
+                        }}
                       >×</button>
                     </div>
                   ))}
@@ -155,13 +188,16 @@ function App() {
                   {audioClips1.map(clip => (
                     <div 
                       key={clip.id}
-                      className="clip audio-clip"
+                      className={`clip audio-clip ${selectedClip?.id === clip.id ? 'selected' : ''}`}
                       onClick={() => setSelectedClip(clip)}
                     >
                       <span>{clip.name}</span>
                       <button 
                         className="delete-btn"
-                        onClick={() => handleDeleteClip(clip.id)}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDeleteClip(clip.id);
+                        }}
                       >×</button>
                     </div>
                   ))}
@@ -175,13 +211,16 @@ function App() {
                   {audioClips2.map(clip => (
                     <div 
                       key={clip.id}
-                      className="clip audio-clip"
+                      className={`clip audio-clip ${selectedClip?.id === clip.id ? 'selected' : ''}`}
                       onClick={() => setSelectedClip(clip)}
                     >
                       <span>{clip.name}</span>
                       <button 
                         className="delete-btn"
-                        onClick={() => handleDeleteClip(clip.id)}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDeleteClip(clip.id);
+                        }}
                       >×</button>
                     </div>
                   ))}
@@ -193,18 +232,62 @@ function App() {
 
         {/* RIGHT SIDEBAR */}
         <aside className="sidebar sidebar-right">
-          <div className="panel">
-            <h3>✨ Effects</h3>
-            {effects.map(effect => (
-              <button
-                key={effect.id}
-                className={`effect-btn ${selectedEffect?.id === effect.id ? 'active' : ''}`}
-                onClick={() => setSelectedEffect(effect)}
-              >
-                {effect.icon} {effect.name}
-              </button>
-            ))}
-          </div>
+          
+          {selectedClip ? (
+            <>
+              <div className="panel">
+                <h3>✂️ Trim Clip</h3>
+                <label>Start</label>
+                <input 
+                  type="number" 
+                  value={selectedClip.trimStart}
+                  onChange={(e) => handleTrimClip(selectedClip.id, parseInt(e.target.value), selectedClip.trimEnd)}
+                />
+                <label>End</label>
+                <input 
+                  type="number" 
+                  value={selectedClip.trimEnd}
+                  onChange={(e) => handleTrimClip(selectedClip.id, selectedClip.trimStart, parseInt(e.target.value))}
+                />
+              </div>
+
+              <div className="panel">
+                <h3>✨ Effects</h3>
+                {effects.map(effect => (
+                  <button
+                    key={effect.id}
+                    className={`effect-btn ${selectedEffect?.id === effect.id ? 'active' : ''}`}
+                    onClick={() => setSelectedEffect(effect)}
+                  >
+                    {effect.icon} {effect.name}
+                  </button>
+                ))}
+                <button className="apply-effect-btn" onClick={handleApplyEffect}>
+                  ➕ Apply Effect
+                </button>
+              </div>
+
+              <div className="panel">
+                <h3>📋 Applied Effects</h3>
+                {selectedClip.effects.length > 0 ? (
+                  <div className="effects-list">
+                    {selectedClip.effects.map((eff, i) => (
+                      <div key={i} className="applied-effect">
+                        {eff.icon} {eff.name}
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="no-effects">No effects applied</p>
+                )}
+              </div>
+            </>
+          ) : (
+            <div className="panel">
+              <h3>ℹ️ Info</h3>
+              <p className="info-text">Select a clip to edit</p>
+            </div>
+          )}
 
           <div className="panel">
             <h3>⚙️ Settings</h3>
