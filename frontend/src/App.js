@@ -5,6 +5,7 @@ import SettingsModal from './SettingsModal';
 import AudioMixer from './AudioMixer';
 import Timeline from './components/Timeline';
 import Canvas from './components/Canvas';
+import AssetPanel from './components/AssetPanel';
 import './App.css';
 
 function App() {
@@ -34,16 +35,6 @@ function App() {
     historyIndex,
     history,
   } = useEditor();
-
-  const [draggedAsset, setDraggedAsset] = useState(null);
-
-  const assets = [
-    { id: 1, name: 'Video 1', type: 'video', icon: '🎬', duration: 30 },
-    { id: 2, name: 'Video 2', type: 'video', icon: '🎬', duration: 45 },
-    { id: 3, name: 'Background', type: 'audio', icon: '🎵', duration: 180 },
-    { id: 4, name: 'Nature', type: 'audio', icon: '🎵', duration: 120 },
-    { id: 5, name: 'Ambience', type: 'audio', icon: '🎵', duration: 160 },
-  ];
 
   const effects = [
     { id: 1, name: 'Fade In', icon: '✨' },
@@ -106,29 +97,6 @@ function App() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [isPlaying, selectedClip, currentTime, duration, handleUndo, handleRedo, deleteClip]);
 
-  const handleDragStart = (asset) => {
-    setDraggedAsset(asset);
-  };
-
-  const handleDragOver = (e) => {
-    e.preventDefault();
-  };
-
-  const handleDrop = (track) => {
-    if (!draggedAsset) return;
-    const newClip = {
-      id: Math.random(),
-      ...draggedAsset,
-      track: track,
-      startTime: currentTime,
-      duration: draggedAsset.duration,
-      effects: [],
-      volume: 100,
-    };
-    addClip(newClip);
-    setDraggedAsset(null);
-  };
-
   const handleApplyEffect = () => {
     if (!selectedClip || !selectedEffect) return;
     applyEffect(selectedClip.id, selectedEffect);
@@ -174,46 +142,7 @@ function App() {
       <div className="editor-container">
         
         {/* LEFT SIDEBAR */}
-        <aside className="sidebar sidebar-left">
-          <div className="panel">
-            <h3>📁 Assets</h3>
-            <div className="assets-list">
-              {assets.map(asset => (
-                <div 
-                  key={asset.id}
-                  className="asset-item"
-                  draggable
-                  onDragStart={() => handleDragStart(asset)}
-                  title="Sürükle → Timeline'a"
-                >
-                  <span>{asset.icon}</span>
-                  <div>
-                    <p>{asset.name}</p>
-                    <p className="time">{formatTime(asset.duration)}</p>
-                  </div>
-                  <span className="drag-hint">⋮⋮</span>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          <div className="panel">
-            <h3>🎨 Colors</h3>
-            <div className="colors">
-              <button style={{ backgroundColor: '#FF6B6B' }} title="Red" />
-              <button style={{ backgroundColor: '#4ECDC4' }} title="Teal" />
-              <button style={{ backgroundColor: '#45B7D1' }} title="Blue" />
-              <button style={{ backgroundColor: '#FFA502' }} title="Orange" />
-            </div>
-          </div>
-
-          <div className="panel">
-            <h3>📤 Export</h3>
-            <button className="export-btn" onClick={() => setShowExportDialog(true)} title="Export (Ctrl+E)">
-              🚀 Export Video
-            </button>
-          </div>
-        </aside>
+        <AssetPanel />
 
         {/* CENTER */}
         <main className="editor-main">
