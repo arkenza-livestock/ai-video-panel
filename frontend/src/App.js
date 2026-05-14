@@ -33,54 +33,63 @@ function App() {
   // KEYBOARD SHORTCUTS
   useEffect(() => {
     const handleKeyDown = (e) => {
+      // Ctrl+E → Export
       if (e.ctrlKey && e.key === 'e') {
         e.preventDefault();
         setShowExportDialog(true);
       }
       
+      // Ctrl+, → Settings
       if (e.ctrlKey && e.key === ',') {
         e.preventDefault();
         setShowSettingsModal(true);
       }
       
+      // Ctrl+Z → Undo
       if (e.ctrlKey && e.key === 'z') {
         e.preventDefault();
         handleUndo();
       }
 
+      // Ctrl+Y → Redo
       if (e.ctrlKey && e.key === 'y') {
         e.preventDefault();
         handleRedo();
       }
       
+      // Space → Play/Pause
       if (e.key === ' ') {
         e.preventDefault();
         setIsPlaying(!isPlaying);
       }
       
+      // Delete → Delete selected clip
       if (e.key === 'Delete' && selectedClip) {
         e.preventDefault();
         deleteClip(selectedClip.id);
       }
 
+      // Arrow Left → Rewind 1s
       if (e.key === 'ArrowLeft') {
         e.preventDefault();
         setCurrentTime(Math.max(0, currentTime - 1));
       }
 
+      // Arrow Right → Forward 1s
       if (e.key === 'ArrowRight') {
         e.preventDefault();
         setCurrentTime(Math.min(duration, currentTime + 1));
       }
 
-      if (e.key === 'd') {
+      // D → Deselect clip
+      if (e.key === 'd' || e.key === 'D') {
         setSelectedClip(null);
       }
     };
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isPlaying, selectedClip, currentTime, duration, handleUndo, handleRedo, deleteClip]);
+  }, [isPlaying, selectedClip, currentTime, duration, handleUndo, handleRedo, deleteClip, setSelectedClip, setCurrentTime, setIsPlaying, setShowExportDialog, setShowSettingsModal]);
 
   const handleSaveSettings = (newSettings) => {
     setProjectSettings(newSettings);
@@ -88,26 +97,35 @@ function App() {
 
   return (
     <div className="app">
+      {/* HEADER */}
       <Header />
 
+      {/* MAIN EDITOR CONTAINER */}
       <div className="editor-container">
+        {/* LEFT SIDEBAR - ASSETS */}
         <AssetPanel />
+
+        {/* CENTER - CANVAS + TIMELINE */}
         <main className="editor-main">
           <Canvas />
           <Timeline />
         </main>
+
+        {/* RIGHT SIDEBAR - INSPECTOR */}
         <Inspector />
       </div>
 
+      {/* FOOTER - PLAYBACK CONTROLS */}
       <Footer />
 
-      {/* DIALOGS */}
+      {/* EXPORT DIALOG */}
       <ExportDialog 
         isOpen={showExportDialog}
         onClose={() => setShowExportDialog(false)}
         duration={duration}
       />
 
+      {/* SETTINGS MODAL */}
       <SettingsModal 
         isOpen={showSettingsModal}
         onClose={() => setShowSettingsModal(false)}
