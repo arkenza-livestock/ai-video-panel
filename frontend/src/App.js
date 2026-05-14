@@ -1,159 +1,252 @@
 import React, { useState } from 'react';
-import axios from 'axios';
 import './App.css';
 
-const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000';
-
 function App() {
-  const [activeTab, setActiveTab] = useState(0);
-  const [selectedFormat, setSelectedFormat] = useState('sleep');
-  const [formData, setFormData] = useState({
-    title: '',
-    story_text: '',
-    duration_hours: 3,
-    music_type: 'piano',
-    rain_intensity: 'medium'
-  });
-  const [jobId, setJobId] = useState(null);
-  const [loading, setLoading] = useState(false);
+  const [timeline, setTimeline] = useState([]);
+  const [selectedClip, setSelectedClip] = useState(null);
+  const [draggedAsset, setDraggedAsset] = useState(null);
+  const [currentTime, setCurrentTime] = useState(0);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [selectedEffect, setSelectedEffect] = useState(null);
+  const [duration, setDuration] = useState(180);
 
-  const formats = [
-    { id: 'sleep', name: '🌙 Uyku Ambiyansı', duration: 3, icon: '🌙' },
-    { id: 'book', name: '📖 Kitap Okuma', duration: 1, icon: '📖' },
-    { id: 'journey', name: '🚂 Yolculuk', duration: 3, icon: '🚂' }
+  const assets = [
+    { id: 1, name: 'Video 1', type: 'video', icon: '🎬', duration: 30 },
+    { id: 2, name: 'Video 2', type: 'video', icon: '🎬', duration: 45 },
+    { id: 3, name: 'Background', type: 'audio', icon: '🎵', duration: 180 },
+    { id: 4, name: 'Nature', type: 'audio', icon: '🎵', duration: 120 },
+    { id: 5, name: 'Ambience', type: 'audio', icon: '🎵', duration: 160 },
   ];
 
-  const handleSubmit = async () => {
-    setLoading(true);
-    try {
-      const response = await axios.post(`${API_URL}/create-job`, {
-        format: selectedFormat,
-        ...formData
-      });
-      setJobId(response.data.job_id);
-      alert(`Video oluşturma başladı! İş ID: ${response.data.job_id}`);
-    } catch (error) {
-      console.error('Hata:', error);
-      alert('Bir hata oluştu!');
-    }
-    setLoading(false);
+  const effects = [
+    { id: 1, name: 'Fade In', icon: '✨' },
+    { id: 2, name: 'Fade Out', icon: '✨' },
+    { id: 3, name: 'Zoom', icon: '🔍' },
+    { id: 4, name: 'Blur', icon: '🌫️' },
+    { id: 5, name: 'Speed Up', icon: '⚡' },
+    { id: 6, name: 'Color', icon: '🎨' },
+  ];
+
+  const handleDragStart = (asset) => {
+    setDraggedAsset(asset);
   };
+
+  const handleDragOver = (e) => {
+    e.preventDefault();
+  };
+
+  const handleDrop = (track) => {
+    if (!draggedAsset) return;
+    const newClip = {
+      id: Math.random(),
+      ...draggedAsset,
+      track: track,
+      startTime: currentTime,
+      effects: []
+    };
+    setTimeline([...timeline, newClip]);
+    setDraggedAsset(null);
+  };
+
+  const handleDeleteClip = (clipId) => {
+    setTimeline(timeline.filter(c => c.id !== clipId));
+  };
+
+  const formatTime = (sec) => {
+    const m = Math.floor(sec / 60);
+    const s = Math.floor(sec % 60);
+    return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+  };
+
+  const videoClips = timeline.filter(c => c.type === 'video');
+  const audioClips1 = timeline.filter((c, i) => c.type === 'audio' && i % 2 === 0);
+  const audioClips2 = timeline.filter((c, i) => c.type === 'audio' && i % 2 === 1);
 
   return (
     <div className="app">
       <header className="header">
         <h1>🌙 Atmosfer Stüdyo</h1>
-        <p>Uyku, kitap ve yolculuk için otomatik video üretici</p>
+        <div className="header-menu">
+          <button>File</button>
+          <button>Edit</button>
+          <button>View</button>
+          <button>Help</button>
+        </div>
       </header>
 
-      <div className="format-selector">
-        {formats.map(format => (
-          <button
-            key={format.id}
-            className={`format-btn ${selectedFormat === format.id ? 'active' : ''}`}
-            onClick={() => {
-              setSelectedFormat(format.id);
-              setFormData({ ...formData, duration_hours: format.duration });
-            }}
-          >
-            <span className="format-icon">{format.icon}</span>
-            <span className="format-name">{format.name}</span>
-          </button>
-        ))}
-      </div>
-
-      <div className="tabs">
-        <button className={activeTab === 0 ? 'active' : ''} onClick={() => setActiveTab(0)}>
-          ✍️ Hikaye
-        </button>
-        <button className={activeTab === 1 ? 'active' : ''} onClick={() => setActiveTab(1)}>
-          🎵 Ses/Müzik
-        </button>
-        <button className={activeTab === 2 ? 'active' : ''} onClick={() => setActiveTab(2)}>
-          ⏰ Zamanlama
-        </button>
-      </div>
-
-      <div className="tab-content">
-        {activeTab === 0 && (
-          <div className="story-tab">
-            <input
-              type="text"
-              placeholder="Video Başlığı"
-              value={formData.title}
-              onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-              className="input"
-            />
-            <textarea
-              placeholder="Hikaye metni (ilk 20 saniyede görünecek)"
-              rows="5"
-              value={formData.story_text}
-              onChange={(e) => setFormData({ ...formData, story_text: e.target.value })}
-              className="textarea"
-            />
+      <div className="editor-container">
+        
+        {/* LEFT SIDEBAR */}
+        <aside className="sidebar sidebar-left">
+          <div className="panel">
+            <h3>📁 Assets</h3>
+            <div className="assets-list">
+              {assets.map(asset => (
+                <div 
+                  key={asset.id}
+                  className="asset-item"
+                  draggable
+                  onDragStart={() => handleDragStart(asset)}
+                  title="Sürükle → Timeline'a"
+                >
+                  <span>{asset.icon}</span>
+                  <div>
+                    <p>{asset.name}</p>
+                    <p className="time">{formatTime(asset.duration)}</p>
+                  </div>
+                  <span className="drag-hint">⋮⋮</span>
+                </div>
+              ))}
+            </div>
           </div>
-        )}
 
-        {activeTab === 1 && (
-          <div className="audio-tab">
-            <label>Müzik Tipi</label>
-            <select
-              value={formData.music_type}
-              onChange={(e) => setFormData({ ...formData, music_type: e.target.value })}
-              className="select"
-            >
-              <option value="piano">🎹 Lo-fi Piyano</option>
-              <option value="drone">🌊 Ambient Drone</option>
-              <option value="classical">🎻 Klasik</option>
-              <option value="silent">🔇 Sessiz</option>
+          <div className="panel">
+            <h3>🎨 Colors</h3>
+            <div className="colors">
+              <button style={{ backgroundColor: '#FF6B6B' }} />
+              <button style={{ backgroundColor: '#4ECDC4' }} />
+              <button style={{ backgroundColor: '#45B7D1' }} />
+              <button style={{ backgroundColor: '#FFA502' }} />
+            </div>
+          </div>
+
+          <div className="panel">
+            <h3>📤 Export</h3>
+            <button className="export-btn">🚀 Export Video</button>
+          </div>
+        </aside>
+
+        {/* CENTER */}
+        <main className="editor-main">
+          <div className="canvas-container">
+            <div className="canvas">
+              <p>▶ Video Preview</p>
+              {selectedClip && <p className="selected-clip">{selectedClip.name}</p>}
+            </div>
+          </div>
+
+          <div className="timeline-container">
+            <h3>🎬 Timeline</h3>
+            <div className="timeline">
+              {/* VIDEO TRACK */}
+              <div className="track" onDragOver={handleDragOver} onDrop={() => handleDrop('video')}>
+                <div className="track-header">▼ V1</div>
+                <div className="track-content">
+                  {videoClips.map(clip => (
+                    <div 
+                      key={clip.id}
+                      className="clip video-clip"
+                      onClick={() => setSelectedClip(clip)}
+                    >
+                      <span>{clip.name}</span>
+                      <button 
+                        className="delete-btn"
+                        onClick={() => handleDeleteClip(clip.id)}
+                      >×</button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* AUDIO TRACK 1 */}
+              <div className="track" onDragOver={handleDragOver} onDrop={() => handleDrop('audio1')}>
+                <div className="track-header">▼ A1</div>
+                <div className="track-content">
+                  {audioClips1.map(clip => (
+                    <div 
+                      key={clip.id}
+                      className="clip audio-clip"
+                      onClick={() => setSelectedClip(clip)}
+                    >
+                      <span>{clip.name}</span>
+                      <button 
+                        className="delete-btn"
+                        onClick={() => handleDeleteClip(clip.id)}
+                      >×</button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* AUDIO TRACK 2 */}
+              <div className="track" onDragOver={handleDragOver} onDrop={() => handleDrop('audio2')}>
+                <div className="track-header">▼ A2</div>
+                <div className="track-content">
+                  {audioClips2.map(clip => (
+                    <div 
+                      key={clip.id}
+                      className="clip audio-clip"
+                      onClick={() => setSelectedClip(clip)}
+                    >
+                      <span>{clip.name}</span>
+                      <button 
+                        className="delete-btn"
+                        onClick={() => handleDeleteClip(clip.id)}
+                      >×</button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+        </main>
+
+        {/* RIGHT SIDEBAR */}
+        <aside className="sidebar sidebar-right">
+          <div className="panel">
+            <h3>✨ Effects</h3>
+            {effects.map(effect => (
+              <button
+                key={effect.id}
+                className={`effect-btn ${selectedEffect?.id === effect.id ? 'active' : ''}`}
+                onClick={() => setSelectedEffect(effect)}
+              >
+                {effect.icon} {effect.name}
+              </button>
+            ))}
+          </div>
+
+          <div className="panel">
+            <h3>⚙️ Settings</h3>
+            <label>Duration</label>
+            <input type="number" value={duration} onChange={(e) => setDuration(parseInt(e.target.value))} />
+            
+            <label>FPS</label>
+            <select>
+              <option>24 FPS</option>
+              <option>30 FPS</option>
+              <option>60 FPS</option>
             </select>
 
-            <label>Yağmur Şiddeti</label>
-            <input
-              type="range"
-              min="0"
-              max="100"
-              value={formData.rain_intensity === 'light' ? 30 : formData.rain_intensity === 'medium' ? 60 : 90}
-              onChange={(e) => {
-                const val = parseInt(e.target.value);
-                const intensity = val < 45 ? 'light' : val < 75 ? 'medium' : 'heavy';
-                setFormData({ ...formData, rain_intensity: intensity });
-              }}
-              className="slider"
-            />
+            <label>Resolution</label>
+            <select>
+              <option>1080p</option>
+              <option>720p</option>
+              <option>4K</option>
+            </select>
           </div>
-        )}
-
-        {activeTab === 2 && (
-          <div className="schedule-tab">
-            <label>Süre (saat)</label>
-            <input
-              type="number"
-              min="0.5"
-              max="10"
-              step="0.5"
-              value={formData.duration_hours}
-              onChange={(e) => setFormData({ ...formData, duration_hours: parseFloat(e.target.value) })}
-              className="input"
-            />
-            
-            <button 
-              onClick={handleSubmit} 
-              className="submit-btn"
-              disabled={loading}
-            >
-              {loading ? '🎬 Oluşturuluyor...' : '🎥 Video Oluştur'}
-            </button>
-
-            {jobId && (
-              <div className="job-info">
-                <p>✅ İş ID: {jobId}</p>
-                <a href={`${API_URL}/job-status/${jobId}`}>Durumu kontrol et</a>
-              </div>
-            )}
-          </div>
-        )}
+        </aside>
       </div>
+
+      {/* FOOTER */}
+      <footer className="footer">
+        <button className="play-btn" onClick={() => setIsPlaying(!isPlaying)}>
+          {isPlaying ? '⏸' : '▶'}
+        </button>
+        <button>⏹</button>
+        <span>{formatTime(currentTime)} / {formatTime(duration)}</span>
+        <input 
+          type="range" 
+          min="0" 
+          max={duration} 
+          value={currentTime} 
+          onChange={(e) => setCurrentTime(parseInt(e.target.value))}
+          className="slider"
+        />
+        <button className="volume-btn">🔊</button>
+        <button className="mic-btn">🎙️</button>
+        <button className="export-final">🚀 Export</button>
+      </footer>
     </div>
   );
 }
