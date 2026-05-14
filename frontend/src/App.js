@@ -5,6 +5,8 @@ import './App.css';
 
 function App() {
   const [timeline, setTimeline] = useState([]);
+  const [history, setHistory] = useState([[]]);
+  const [historyIndex, setHistoryIndex] = useState(0);
   const [selectedClip, setSelectedClip] = useState(null);
   const [draggedAsset, setDraggedAsset] = useState(null);
   const [currentTime, setCurrentTime] = useState(0);
@@ -41,6 +43,31 @@ function App() {
     { id: 6, name: 'Color Grade', icon: '🎨' },
   ];
 
+  // UNDO/REDO
+  const updateTimeline = (newTimeline) => {
+    const newHistory = history.slice(0, historyIndex + 1);
+    newHistory.push(newTimeline);
+    setHistory(newHistory);
+    setHistoryIndex(newHistory.length - 1);
+    setTimeline(newTimeline);
+  };
+
+  const handleUndo = () => {
+    if (historyIndex > 0) {
+      const newIndex = historyIndex - 1;
+      setHistoryIndex(newIndex);
+      setTimeline(history[newIndex]);
+    }
+  };
+
+  const handleRedo = () => {
+    if (historyIndex < history.length - 1) {
+      const newIndex = historyIndex + 1;
+      setHistoryIndex(newIndex);
+      setTimeline(history[newIndex]);
+    }
+  };
+
   // KEYBOARD SHORTCUTS
   useEffect(() => {
     const handleKeyDown = (e) => {
@@ -56,6 +83,18 @@ function App() {
         setShowSettingsModal(true);
       }
       
+      // Ctrl+Z → Undo
+      if (e.ctrlKey && e.key === 'z') {
+        e.preventDefault();
+        handleUndo();
+      }
+
+      // Ctrl+Y → Redo
+      if (e.ctrlKey && e.key === 'y') {
+        e.preventDefault();
+        handleRedo();
+      }
+      
       // Space → Play/Pause
       if (e.key === ' ') {
         e.preventDefault();
@@ -65,7 +104,9 @@ function App() {
       // Delete → Delete selected clip
       if (e.key === 'Delete' && selectedClip) {
         e.preventDefault();
-        handleDeleteClip(selectedClip.id);
+        const newTimeline = timeline.filter(c => c.id !== selectedClip.id);
+        updateTimeline(newTimeline);
+        setSelectedClip(null);
       }
 
       // Arrow Left → Rewind 1 second
@@ -88,7 +129,7 @@ function App() {
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isPlaying, selectedClip, currentTime, duration]);
+  }, [isPlaying, selectedClip, currentTime, duration, history, historyIndex]);
 
   const handleDragStart = (asset) => {
     setDraggedAsset(asset);
@@ -109,12 +150,13 @@ function App() {
       effects: [],
       volume: 100,
     };
-    setTimeline([...timeline, newClip]);
+    updateTimeline([...timeline, newClip]);
     setDraggedAsset(null);
   };
 
   const handleDeleteClip = (clipId) => {
-    setTimeline(timeline.filter(c => c.id !== clipId));
+    const newTimeline = timeline.filter(c => c.id !== clipId);
+    updateTimeline(newTimeline);
     if (selectedClip?.id === clipId) setSelectedClip(null);
   };
 
@@ -161,6 +203,9 @@ function App() {
   };
 
   const handleMouseUp = () => {
+    if (resizingClip) {
+      updateTimeline(timeline);
+    }
     setResizingClip(null);
   };
 
@@ -172,7 +217,7 @@ function App() {
         ? { ...c, effects: [...c.effects, selectedEffect] }
         : c
     );
-    setTimeline(updatedTimeline);
+    updateTimeline(updatedTimeline);
     setSelectedClip({ ...selectedClip, effects: [...selectedClip.effects, selectedEffect] });
   };
 
@@ -199,6 +244,22 @@ function App() {
       <header className="header">
         <h1>🌙 {projectSettings.projectName}</h1>
         <div className="header-menu">
+          <button 
+            onClick={handleUndo} 
+            disabled={historyIndex <= 0}
+            title="Undo (Ctrl+Z)"
+            className={historyIndex <= 0 ? 'disabled' : ''}
+          >
+            ↶ Undo
+          </button>
+          <button 
+            onClick={handleRedo}
+            disabled={historyIndex >= history.length - 1}
+            title="Redo (Ctrl+Y)"
+            className={historyIndex >= history.length - 1 ? 'disabled' : ''}
+          >
+            ↷ Redo
+          </button>
           <button title="File">File</button>
           <button title="Edit">Edit</button>
           <button title="View">View</button>
@@ -446,6 +507,8 @@ function App() {
                 <strong>Del</strong> - Delete clip<br/>
                 <strong>←/→</strong> - Rewind/Forward<br/>
                 <strong>D</strong> - Deselect<br/>
+                <strong>Ctrl+Z</strong> - Undo<br/>
+                <strong>Ctrl+Y</strong> - Redo<br/>
                 <strong>Ctrl+E</strong> - Export<br/>
                 <strong>Ctrl+,</strong> - Settings
               </p>
