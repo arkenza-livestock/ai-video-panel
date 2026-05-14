@@ -1,4 +1,5 @@
 import React, { useState, useRef } from 'react';
+import ExportDialog from './ExportDialog';
 import './App.css';
 
 function App() {
@@ -10,6 +11,7 @@ function App() {
   const [selectedEffect, setSelectedEffect] = useState(null);
   const [duration, setDuration] = useState(180);
   const [resizingClip, setResizingClip] = useState(null);
+  const [showExportDialog, setShowExportDialog] = useState(false);
   const timelineRef = useRef(null);
 
   const assets = [
@@ -76,7 +78,7 @@ function App() {
     if (!clip) return;
 
     const deltaPixels = e.clientX - resizingClip.startX;
-    const deltaSeconds = deltaPixels / 2; // pixels to seconds conversion
+    const deltaSeconds = deltaPixels / 2;
 
     const updatedTimeline = timeline.map(c => {
       if (c.id !== resizingClip.clipId) return c;
@@ -179,7 +181,9 @@ function App() {
 
           <div className="panel">
             <h3>📤 Export</h3>
-            <button className="export-btn">🚀 Export Video</button>
+            <button className="export-btn" onClick={() => setShowExportDialog(true)}>
+              🚀 Export Video
+            </button>
           </div>
         </aside>
 
@@ -422,8 +426,17 @@ function App() {
         />
         <button className="volume-btn">🔊</button>
         <button className="mic-btn">🎙️</button>
-        <button className="export-final">🚀 Export</button>
+        <button className="export-final" onClick={() => setShowExportDialog(true)}>
+          🚀 Export
+        </button>
       </footer>
+
+      {/* EXPORT DIALOG */}
+      <ExportDialog 
+        isOpen={showExportDialog}
+        onClose={() => setShowExportDialog(false)}
+        duration={duration}
+      />
     </div>
   );
 }
