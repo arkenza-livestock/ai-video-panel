@@ -1,161 +1,109 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useEditor } from './context/EditorContext';
-import ExportDialog from './ExportDialog';
-import SettingsModal from './SettingsModal';
-import ProjectModal from './ProjectModal';
 import Header from './components/Header';
-import Timeline from './components/Timeline';
 import Canvas from './components/Canvas';
+import Timeline from './components/Timeline';
 import AssetPanel from './components/AssetPanel';
 import Inspector from './components/Inspector';
 import Footer from './components/Footer';
+import AudioMixer from './AudioMixer.jsx';
+import ExportDialog from './ExportDialog';
+import ProjectModal from './ProjectModal';
+import SettingsModal from './SettingsModal';
 import './App.css';
 
 function App() {
   const {
-    selectedClip,
-    setSelectedClip,
+    apiReady,
+    apiError,
+    isSaving,
+    isLoading,
+    timeline,
+    duration,
     currentTime,
     setCurrentTime,
     isPlaying,
     setIsPlaying,
-    duration,
-    showExportDialog,
-    setShowExportDialog,
-    showSettingsModal,
-    setShowSettingsModal,
-    projectSettings,
-    setProjectSettings,
-    handleUndo,
-    handleRedo,
-    deleteClip,
-    saveProject,
-    apiReady,
-    apiError,
-    isLoading,
-    isSaving,
   } = useEditor();
 
+  const [showExportDialog, setShowExportDialog] = useState(false);
   const [showProjectModal, setShowProjectModal] = useState(false);
+  const [showSettingsModal, setShowSettingsModal] = useState(false);
 
-  // KEYBOARD SHORTCUTS
+  // Keyboard shortcuts
   useEffect(() => {
-    const handleKeyDown = (e) => {
-      // Ctrl+E → Export
-      if (e.ctrlKey && e.key === 'e') {
-        e.preventDefault();
-        setShowExportDialog(true);
-      }
-      
-      // Ctrl+, → Settings
-      if (e.ctrlKey && e.key === ',') {
-        e.preventDefault();
-        setShowSettingsModal(true);
-      }
-      
-      // Ctrl+Z → Undo
-      if (e.ctrlKey && e.key === 'z') {
-        e.preventDefault();
-        handleUndo();
-      }
-
-      // Ctrl+Y → Redo
-      if (e.ctrlKey && e.key === 'y') {
-        e.preventDefault();
-        handleRedo();
-      }
-
-      // Ctrl+S → Save
+    const handleKeyPress = (e) => {
+      // Ctrl+S - Save project
       if (e.ctrlKey && e.key === 's') {
         e.preventDefault();
-        saveProject();
+        // Save handled by EditorContext auto-save
       }
 
-      // Ctrl+O → Open Project
+      // Ctrl+O - Open project
       if (e.ctrlKey && e.key === 'o') {
         e.preventDefault();
         setShowProjectModal(true);
       }
-      
-      // Space → Play/Pause
-      if (e.key === ' ') {
+
+      // Ctrl+E - Export
+      if (e.ctrlKey && e.key === 'e') {
+        e.preventDefault();
+        setShowExportDialog(true);
+      }
+
+      // Ctrl+, - Settings
+      if (e.ctrlKey && e.key === ',') {
+        e.preventDefault();
+        setShowSettingsModal(true);
+      }
+
+      // Space - Play/Pause
+      if (e.code === 'Space') {
         e.preventDefault();
         setIsPlaying(!isPlaying);
       }
-      
-      // Delete → Delete selected clip
-      if (e.key === 'Delete' && selectedClip) {
+
+      // Delete - Delete selected clip
+      if (e.key === 'Delete') {
         e.preventDefault();
-        deleteClip(selectedClip.id);
+        // Delete handled by context
       }
 
-      // Arrow Left → Rewind 1s
+      // Arrow keys - Seek
       if (e.key === 'ArrowLeft') {
         e.preventDefault();
         setCurrentTime(Math.max(0, currentTime - 1));
       }
-
-      // Arrow Right → Forward 1s
       if (e.key === 'ArrowRight') {
         e.preventDefault();
         setCurrentTime(Math.min(duration, currentTime + 1));
       }
-
-      // D → Deselect clip
-      if (e.key === 'd' || e.key === 'D') {
-        setSelectedClip(null);
-      }
     };
 
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [
-    isPlaying,
-    selectedClip,
-    currentTime,
-    duration,
-    handleUndo,
-    handleRedo,
-    deleteClip,
-    setSelectedClip,
-    setCurrentTime,
-    setIsPlaying,
-    setShowExportDialog,
-    setShowSettingsModal,
-    saveProject,
-  ]);
+    window.addEventListener('keydown', handleKeyPress);
+    return () => window.removeEventListener('keydown', handleKeyPress);
+  }, [isPlaying, currentTime, duration, setCurrentTime, setIsPlaying]);
 
-  const handleSaveSettings = (newSettings) => {
-    setProjectSettings(newSettings);
-  };
-
-  // Show loading screen
+  // Loading screen
   if (isLoading) {
     return (
-      <div className="app loading-screen">
-        <div className="loading-content">
-          <p>🚀 Initializing Atmosfer Studio...</p>
-          <div className="loading-spinner"></div>
-        </div>
+      <div className="loading-screen">
+        <div className="spinner"></div>
+        <p>Atmosfer Studio yükleniyor...</p>
       </div>
     );
   }
 
-  // Show error screen if API is not available
-  if (apiError && !apiReady) {
+  // API Error screen
+  if (apiError) {
     return (
-      <div className="app error-screen">
-        <div className="error-content">
-          <p>⚠️ Backend Connection Error</p>
-          <p className="error-message">{apiError}</p>
-          <p className="error-hint">
-            Make sure the backend is running on http://localhost:8000
-          </p>
-          <button 
-            className="retry-btn"
-            onClick={() => window.location.reload()}
-          >
-            🔄 Retry
+      <div className="error-screen">
+        <div className="error-box">
+          <h2>⚠️ Bağlantı Hatası</h2>
+          <p>{apiError}</p>
+          <p>Backend servisi çalışmıyor veya erişilemez.</p>
+          <button onClick={() => window.location.reload()}>
+            Yeniden Dene
           </button>
         </div>
       </div>
@@ -163,59 +111,65 @@ function App() {
   }
 
   return (
-    <div className="app">
-      {/* HEADER */}
-      <Header showProjectModal={showProjectModal} setShowProjectModal={setShowProjectModal} />
-
-      {/* MAIN EDITOR */}
-      <div className="editor-container">
-        <AssetPanel />
-        <main className="editor-main">
-          <Canvas />
-          <Timeline />
-        </main>
-        <Inspector />
-      </div>
-
-      {/* FOOTER */}
-      <Footer />
-
-      {/* MODALS & DIALOGS */}
-      
-      {/* PROJECT MODAL */}
-      <ProjectModal
-        isOpen={showProjectModal}
-        onClose={() => setShowProjectModal(false)}
-        onProjectSelect={() => setShowProjectModal(false)}
-      />
-
-      {/* EXPORT DIALOG */}
-      <ExportDialog 
-        isOpen={showExportDialog}
-        onClose={() => setShowExportDialog(false)}
-        duration={duration}
-      />
-
-      {/* SETTINGS MODAL */}
-      <SettingsModal 
-        isOpen={showSettingsModal}
-        onClose={() => setShowSettingsModal(false)}
-        onSave={handleSaveSettings}
-        projectSettings={projectSettings}
-      />
-
-      {/* SAVE STATUS */}
+    <div className="app-container">
+      {/* Saving indicator */}
       {isSaving && (
-        <div className="save-indicator">
-          <span>💾 Saving...</span>
+        <div className="saving-indicator">
+          💾 Kaydediliyor...
         </div>
       )}
 
-      {/* API ERROR NOTIFICATION */}
-      {apiError && apiReady && (
-        <div className="api-error-notification">
-          <span>⚠️ {apiError}</span>
+      {/* API Ready indicator */}
+      {!apiReady && (
+        <div className="api-warning">
+          ⚠️ API hazırlanıyor...
         </div>
+      )}
+
+      {/* Header */}
+      <Header
+        showProjectModal={showProjectModal}
+        setShowProjectModal={setShowProjectModal}
+      />
+
+      {/* Main content */}
+      <div className="main-content">
+        {/* Left sidebar - Assets */}
+        <AssetPanel />
+
+        {/* Center - Canvas & Timeline */}
+        <div className="center-panel">
+          {/* Video preview */}
+          <Canvas />
+
+          {/* Timeline */}
+          <Timeline />
+        </div>
+
+        {/* Right sidebar - Inspector */}
+        <Inspector
+          setShowExportDialog={setShowExportDialog}
+          setShowSettingsModal={setShowSettingsModal}
+        />
+      </div>
+
+      {/* Footer - Playback controls */}
+      <Footer
+        setShowExportDialog={setShowExportDialog}
+        setShowProjectModal={setShowProjectModal}
+      />
+
+      {/* Modals */}
+      {showExportDialog && (
+        <ExportDialog onClose={() => setShowExportDialog(false)} />
+      )}
+
+      {showProjectModal && (
+        <ProjectModal onClose={() => setShowProjectModal(false)} />
+      )}
+
+      {showSettingsModal && (
+        <SettingsModal onClose={() => setShowSettingsModal(false)} />
       )}
     </div>
   );
