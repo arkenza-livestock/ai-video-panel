@@ -1,53 +1,29 @@
 import apiClient from './apiClient';
 
-/**
- * Atmosfer Studio - Proje Yönetim Servisi
- * Tüm endpoint'ler 'network_mode: host' mimarisine uygun olarak
- * apiClient üzerinden doğrudan merkez sunucuya yönlendirilir.
- */
-
-// Yeni bir proje oluşturur
-export const createProject = async (projectData) => {
-  return await apiClient.post('/api/projects', projectData);
-};
-
-// Mevcut tüm projeleri listeler
-export const getProjects = async () => {
-  return await apiClient.get('/api/projects');
-};
-
-// ID değerine göre tek bir projenin detaylarını getirir
-export const getProject = async (projectId) => {
-  return await apiClient.get(`/api/projects/${projectId}`);
-};
-
-// Proje verilerini (timeline, assetler vb.) günceller ve kaydeder
-export const updateProject = async (projectId, projectData) => {
-  return await apiClient.put(`/api/projects/${projectId}`, projectData);
-};
-
-// Projeyi sunucudan ve veritabanından tamamen siler
-export const deleteProject = async (projectId) => {
-  return await apiClient.delete(`/api/projects/${projectId}`);
-};
-
-// Projenin render/export sürecini başlatır
-export const exportVideo = async (projectId, exportSettings) => {
-  return await apiClient.post(`/api/projects/${projectId}/export`, exportSettings);
-};
-
-// EditorContext veya eski bileşenlerde bu isimle çağrıldıysa çökmesin diye alias (takma ad) ekliyoruz
-export const exportProjectVideo = exportVideo;
-
-// Hem isimlendirilmiş (named) hem de obje (default) olarak export ediyoruz
 const projectService = {
-  createProject,
-  getProjects,
-  getProject,
-  updateProject,
-  deleteProject,
-  exportVideo,
-  exportProjectVideo
+  // Tüm projeleri getirir
+  getAllProjects: () => apiClient.get('/projects'),
+
+  // Tek bir projeyi detaylarıyla getirir
+  getProject: (id) => apiClient.get(`/projects/${id}`),
+
+  // Yeni bir video projesi oluşturur
+  createProject: (projectData) => apiClient.post('/projects', projectData),
+
+  // Mevcut projeyi günceller
+  updateProject: (id, projectData) => apiClient.put(`/projects/${id}`, projectData),
+
+  // Projeyi tamamen siler
+  deleteProject: (id) => apiClient.delete(`/projects/${id}`),
+
+  // Backend tarafında video birleştirme ve render (export) işlemini tetikler
+  exportVideo: (projectId, exportSettings) => 
+    apiClient.post(`/projects/${projectId}/export`, exportSettings || {}),
+
+  // Projeye ait ham video/ses dosyalarını yükler
+  uploadAsset: (projectId, file) => apiClient.upload(`/projects/${projectId}/upload`, file)
 };
 
+// Hem default olarak hem de parçalı olarak dışa aktarıyoruz ki EditorContext hata vermesin
+export const { createProject, getProject, updateProject, deleteProject, exportVideo, uploadAsset } = projectService;
 export default projectService;
