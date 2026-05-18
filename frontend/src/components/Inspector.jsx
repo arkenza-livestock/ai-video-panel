@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useEditor } from '../context/EditorContext';
-import AudioMixer from './AudioMixer';
+import AudioMixer from '../AudioMixer'; // Dosya yolu bir üst klasöre çıkacak şekilde güncellendi
 import '../styles/Inspector.css';
 
 function Inspector() {
