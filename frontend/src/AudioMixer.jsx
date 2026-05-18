@@ -1,19 +1,21 @@
-import React, { useState } from 'react';
+import React from 'react';
+import { useEditor } from './context/EditorContext';
 import './AudioMixer.css';
 
-function AudioMixer({ clips }) {
-  const [volumes, setVolumes] = useState({});
+function AudioMixer() {
+  const { timeline, updateTimeline } = useEditor();
 
-  const handleVolumeChange = (clipId, volume) => {
-    setVolumes({ ...volumes, [clipId]: volume });
+  const handleVolumeChange = (clipIndex, newVolume) => {
+    const updatedClips = [...timeline];
+    updatedClips[clipIndex].volume = parseFloat(newVolume);
+    updateTimeline(updatedClips);
   };
 
-  const audioClips = clips.filter(c => c.type === 'audio');
-
-  if (audioClips.length === 0) {
+  if (!timeline || timeline.length === 0) {
     return (
-      <div className="audio-mixer empty">
-        <p>No audio clips</p>
+      <div className="audio-mixer">
+        <h3>🎚️ Audio Mixer</h3>
+        <p>Henüz clip eklenmedi</p>
       </div>
     );
   }
@@ -22,24 +24,23 @@ function AudioMixer({ clips }) {
     <div className="audio-mixer">
       <h3>🎚️ Audio Mixer</h3>
       <div className="mixer-channels">
-        {audioClips.map(clip => (
-          <div key={clip.id} className="mixer-channel">
-            <div className="channel-name">{clip.name}</div>
-            <div className="channel-controls">
-              <input
-                type="range"
-                min="0"
-                max="100"
-                defaultValue={clip.volume || 80}
-                onChange={(e) => handleVolumeChange(clip.id, e.target.value)}
-                className="volume-slider"
-              />
-              <span className="volume-label">
-                {volumes[clip.id] || clip.volume || 80}%
-              </span>
-            </div>
-            <div className="channel-meter">
-              <div className="meter-bar" style={{ width: `${(volumes[clip.id] || clip.volume || 80) / 2}%` }} />
+        {timeline.map((clip, index) => (
+          <div key={index} className="mixer-channel">
+            <label>{clip.name || `Clip ${index + 1}`}</label>
+            <input
+              type="range"
+              min="0"
+              max="100"
+              value={clip.volume || 100}
+              onChange={(e) => handleVolumeChange(index, e.target.value)}
+              className="volume-slider"
+            />
+            <span className="volume-value">{Math.round(clip.volume || 100)}%</span>
+            <div className="volume-meter">
+              <div
+                className="volume-meter-fill"
+                style={{ width: `${clip.volume || 100}%` }}
+              ></div>
             </div>
           </div>
         ))}
