@@ -22,7 +22,6 @@ services:
       dockerfile: Dockerfile
     image: atmosfer-frontend:latest
     container_name: atmosfer-frontend-app
-    # HATA DÜZELTİLDİ: Port köprü çakışmalarını bitirmek için frontend de host moduna alındı
     network_mode: "host"
     restart: always
     depends_on:
