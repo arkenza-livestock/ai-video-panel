@@ -19,17 +19,22 @@ function ProjectModal({ isOpen, onClose, onProjectSelect }) {
   const [error, setError] = useState(null);
   const [deleting, setDeleting] = useState(null);
 
-  // Load projects on open
+  // Modal her açıldığında projeleri yükle
   useEffect(() => {
-    if (isOpen && apiReady) {
+    if (isOpen) {
       loadProjects();
     }
   }, [isOpen, apiReady]);
 
   const loadProjects = async () => {
     try {
+      // API hazır değilse istek atıp konsolu hataya boğma, boş liste ver geç
+      if (!apiReady || !projectService || typeof projectService.getProjects !== 'function') {
+        setProjects([]);
+        return;
+      }
       const result = await projectService.getProjects();
-      setProjects(result.projects || []);
+      setProjects(result?.projects || []);
       setError(null);
     } catch (err) {
       setError(err.message);
@@ -39,12 +44,17 @@ function ProjectModal({ isOpen, onClose, onProjectSelect }) {
 
   const handleCreateProject = async () => {
     try {
-      const result = await createNewProject();
-      if (result) {
-        setNewProjectName('New Project');
-        setShowNewProjectForm(false);
-        await loadProjects();
-        onProjectSelect(result);
+      // HATA DÜZELTİLDİ: Inputa yazılan isim (newProjectName) artık fonksiyona gönderiliyor!
+      const result = await createNewProject(newProjectName);
+      
+      setNewProjectName('New Project');
+      setShowNewProjectForm(false);
+      await loadProjects();
+      
+      if (onProjectSelect) {
+        onProjectSelect(result || true);
+      } else if (onClose) {
+        onClose();
       }
     } catch (err) {
       setError(err.message);
@@ -53,9 +63,11 @@ function ProjectModal({ isOpen, onClose, onProjectSelect }) {
 
   const handleLoadProject = async (projectId) => {
     try {
-      const success = await loadProject(projectId);
-      if (success) {
+      await loadProject(projectId);
+      if (onProjectSelect) {
         onProjectSelect(projectId);
+      } else if (onClose) {
+        onClose();
       }
     } catch (err) {
       setError(err.message);
@@ -65,8 +77,8 @@ function ProjectModal({ isOpen, onClose, onProjectSelect }) {
   const handleDeleteProject = async (projectId) => {
     try {
       setDeleting(projectId);
-      const success = await deleteProject(projectId);
-      if (success) {
+      if (deleteProject) {
+        await deleteProject(projectId);
         await loadProjects();
       }
     } catch (err) {
@@ -85,6 +97,7 @@ function ProjectModal({ isOpen, onClose, onProjectSelect }) {
     });
   };
 
+  // Eğer isOpen false ise kesinlikle ekrana hiçbir şey çizme
   if (!isOpen) return null;
 
   return (
@@ -190,7 +203,7 @@ function ProjectModal({ isOpen, onClose, onProjectSelect }) {
 
           {/* API STATUS */}
           {!apiReady && (
-            <div className="warning-message">
+            <div className="warning-message" style={{ margin: '10px 0', padding: '8px', backgroundColor: '#fff3cd', color: '#856404', borderRadius: '4px', fontSize: '12px' }}>
               ⚠️ Backend API not available. Working in offline mode.
             </div>
           )}
