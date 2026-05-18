@@ -7,9 +7,9 @@ services:
       dockerfile: Dockerfile
     image: atmosfer-backend:latest
     container_name: atmosfer-backend-app
-    # Host modunu kaldırıp standart izole porta çekiyoruz
+    # Port çakışmasını aşmak için 8085 yerine temiz bir limana geçtik
     ports:
-      - "8085:8000"
+      - "8090:8000"
     env_file:
       - ./backend/.env
     volumes:
@@ -24,7 +24,6 @@ services:
       dockerfile: Dockerfile
     image: atmosfer-frontend:latest
     container_name: atmosfer-frontend-app
-    # Karışıklığı önlemek için dış portu 3020 yapıyoruz
     ports:
       - "3020:3012"
     restart: always
