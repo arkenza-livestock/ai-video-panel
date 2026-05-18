@@ -7,17 +7,14 @@ services:
       dockerfile: Dockerfile
     image: atmosfer-backend:latest
     container_name: atmosfer-backend-app
-    # Portu tamamen izole edip sadece ortak ağa açtık
-    expose:
-      - "8000"
+    ports:
+      - "8000:8000"
     env_file:
       - ./backend/.env
     volumes:
       - ./backend/projects:/app/projects
       - ./backend/exports:/app/exports
       - ./backend/atmosfer.db:/app/atmosfer.db
-    networks:
-      - atmosfer_net
     restart: always
 
   frontend:
@@ -26,15 +23,8 @@ services:
       dockerfile: Dockerfile
     image: atmosfer-frontend:latest
     container_name: atmosfer-frontend-app
-    # Tarayıcıdan doğrudan erişebilmek için sadece frontend portunu açıyoruz
     ports:
       - "3012:3012"
-    networks:
-      - atmosfer_net
     restart: always
     depends_on:
       - backend
-
-networks:
-  atmosfer_net:
-    driver: bridge
