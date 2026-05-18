@@ -14,7 +14,6 @@ function Header({ showProjectModal, setShowProjectModal, showSettingsModal, setS
 
   const [menuOpen, setMenuOpen] = useState(null);
 
-  // e.preventDefault() kaldırıldı. Sadece tıklamanın dışarı sızmasını engelliyoruz.
   const handleMenuToggle = (e, menuName) => {
     if (e) {
       e.stopPropagation(); 
@@ -22,17 +21,18 @@ function Header({ showProjectModal, setShowProjectModal, showSettingsModal, setS
     setMenuOpen(prev => (prev === menuName ? null : menuName));
   };
 
+  // Fonksiyonları doğrudan içeride tetikleyecek şekilde güncelledik
   const menuItems = {
     File: [
-      { label: 'New Project', icon: '📄', action: () => { if (setShowProjectModal) setShowProjectModal(true); } },
-      { label: 'Open Project', icon: '📂', action: () => { if (setShowProjectModal) setShowProjectModal(true); } },
-      { label: 'Save', icon: '💾', action: () => { if (saveProject) saveProject(); } },
+      { label: 'New Project', icon: '📄', action: () => setShowProjectModal && setShowProjectModal(true) },
+      { label: 'Open Project', icon: '📂', action: () => setShowProjectModal && setShowProjectModal(true) },
+      { label: 'Save', icon: '💾', action: () => saveProject && saveProject() },
       { label: 'Recent', icon: '⏱️' },
       { label: 'Exit', icon: '🚪' },
     ],
     Edit: [
-      { label: 'Undo', icon: '↶', action: () => handleUndo() },
-      { label: 'Redo', icon: '↷', action: () => handleRedo() },
+      { label: 'Undo', icon: '↶', action: () => handleUndo && handleUndo() },
+      { label: 'Redo', icon: '↷', action: () => handleRedo && handleRedo() },
       { label: 'Cut', icon: '✂️' },
       { label: 'Copy', icon: '📋' },
       { label: 'Paste', icon: '📌' },
@@ -61,11 +61,12 @@ function Header({ showProjectModal, setShowProjectModal, showSettingsModal, setS
     if (e) {
       e.stopPropagation();
     }
-    if (action) action();
+    if (action) {
+      action(); // Doğrudan ilgili state fonksiyonunu çalıştırır
+    }
     setMenuOpen(null);
   };
 
-  // Dışarıya tıklandığında menülerin kapanmasını sağlayan güvenli mekanizma
   useEffect(() => {
     const closeAllMenus = () => setMenuOpen(null);
     window.addEventListener('click', closeAllMenus);
@@ -96,7 +97,6 @@ function Header({ showProjectModal, setShowProjectModal, showSettingsModal, setS
         <nav className="menu-bar">
           {Object.keys(menuItems).map((menuName) => (
             <div key={menuName} className="menu-item" onClick={(e) => e.stopPropagation()}>
-              {/* onClick hem mobilde hem masaüstünde en kararlı ve kilitlenmeyen yöntemdir */}
               <button
                 className={`menu-btn ${menuOpen === menuName ? 'active' : ''}`}
                 onClick={(e) => handleMenuToggle(e, menuName)}
