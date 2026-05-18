@@ -87,7 +87,7 @@ function App() {
       />
 
       <div className="main-content">
-        {/* HATA DÜZELTİLDİ: AssetPanel içine setShowExportDialog fonksiyonu prop olarak eklendi */}
+        {/* HATA DÜZELTİLDİ: AssetPanel içine setShowExportDialog prop olarak eklendi */}
         <AssetPanel setShowExportDialog={setShowExportDialog} />
         
         <div className="center-panel">
@@ -105,7 +105,7 @@ function App() {
         setShowProjectModal={setShowProjectModal}
       />
 
-      {/* DIALOG VE MODAL PENCERELERİ - isOpen PROPU EKLENDİ */}
+      {/* DIALOG VE MODAL PENCERELERİ */}
       {showExportDialog && (
         <ExportDialog 
           isOpen={showExportDialog} 
