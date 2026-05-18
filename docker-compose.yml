@@ -7,7 +7,6 @@ services:
       dockerfile: Dockerfile
     image: atmosfer-backend:latest
     container_name: atmosfer-backend-app
-    # HATA DÜZELTİLDİ: Sunucudaki tüm standart port çakışmalarını aşmak için 9005 portu atandı
     ports:
       - "9005:8000"
     env_file:
@@ -17,8 +16,6 @@ services:
       - ./backend/exports:/app/exports
       - ./backend/atmosfer.db:/app/atmosfer.db
     restart: always
-    networks:
-      - atmosfer-network
 
   frontend:
     build:
@@ -31,9 +28,3 @@ services:
     restart: always
     depends_on:
       - backend
-    networks:
-      - atmosfer-network
-
-networks:
-  atmosfer-network:
-    driver: bridge
