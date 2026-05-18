@@ -14,10 +14,10 @@ function Header({ showProjectModal, setShowProjectModal, showSettingsModal, setS
 
   const [menuOpen, setMenuOpen] = useState(null);
 
+  // e.preventDefault() kaldırıldı. Sadece tıklamanın dışarı sızmasını engelliyoruz.
   const handleMenuToggle = (e, menuName) => {
     if (e) {
-      e.preventDefault();
-      e.stopPropagation();
+      e.stopPropagation(); 
     }
     setMenuOpen(prev => (prev === menuName ? null : menuName));
   };
@@ -49,10 +49,8 @@ function Header({ showProjectModal, setShowProjectModal, showSettingsModal, setS
 
   const handleSettingsClick = (e) => {
     if (e) {
-      e.preventDefault();
       e.stopPropagation();
     }
-    // Eski alert uyarısını tamamen sildik, doğrudan modalı tetikliyoruz
     if (setShowSettingsModal) {
       setShowSettingsModal(true);
     }
@@ -61,17 +59,17 @@ function Header({ showProjectModal, setShowProjectModal, showSettingsModal, setS
 
   const handleDropdownItemClick = (e, action) => {
     if (e) {
-      e.preventDefault();
       e.stopPropagation();
     }
     if (action) action();
     setMenuOpen(null);
   };
 
+  // Dışarıya tıklandığında menülerin kapanmasını sağlayan güvenli mekanizma
   useEffect(() => {
     const closeAllMenus = () => setMenuOpen(null);
-    window.addEventListener('pointerdown', closeAllMenus);
-    return () => window.removeEventListener('pointerdown', closeAllMenus);
+    window.addEventListener('click', closeAllMenus);
+    return () => window.removeEventListener('click', closeAllMenus);
   }, []);
 
   return (
@@ -98,9 +96,10 @@ function Header({ showProjectModal, setShowProjectModal, showSettingsModal, setS
         <nav className="menu-bar">
           {Object.keys(menuItems).map((menuName) => (
             <div key={menuName} className="menu-item" onClick={(e) => e.stopPropagation()}>
+              {/* onClick hem mobilde hem masaüstünde en kararlı ve kilitlenmeyen yöntemdir */}
               <button
                 className={`menu-btn ${menuOpen === menuName ? 'active' : ''}`}
-                onPointerDown={(e) => handleMenuToggle(e, menuName)}
+                onClick={(e) => handleMenuToggle(e, menuName)}
               >
                 {menuName}
               </button>
@@ -110,7 +109,7 @@ function Header({ showProjectModal, setShowProjectModal, showSettingsModal, setS
                     <button
                       key={i}
                       className="dropdown-item"
-                      onPointerDown={(e) => handleDropdownItemClick(e, item.action)}
+                      onClick={(e) => handleDropdownItemClick(e, item.action)}
                     >
                       <span className="icon">{item.icon}</span>
                       <span className="label">{item.label}</span>
@@ -124,7 +123,7 @@ function Header({ showProjectModal, setShowProjectModal, showSettingsModal, setS
 
         <button 
           className="settings-btn"
-          onPointerDown={handleSettingsClick}
+          onClick={handleSettingsClick}
         >
           ⚙️ Settings
         </button>
