@@ -2,14 +2,14 @@ import React from 'react';
 import { useEditor } from '../context/EditorContext';
 import '../styles/Header.css';
 
-function Header({ showProjectModal, setShowProjectModal }) {
+// showSettingsModal ve setShowSettingsModal propları parametre listesine eklendi!
+function Header({ showProjectModal, setShowProjectModal, showSettingsModal, setShowSettingsModal }) {
   const {
     projectSettings,
     handleUndo,
     handleRedo,
     historyIndex,
     history,
-    setShowSettingsModal,
     saveProject,
   } = useEditor();
 
@@ -48,7 +48,7 @@ function Header({ showProjectModal, setShowProjectModal }) {
     if (typeof setShowSettingsModal === 'function') {
       setShowSettingsModal(true);
     } else {
-      alert("Ayarlar penceresi (Modal) şu an aktif değil. Proje ayarlarına sağ taraftaki 'Project Settings' panelinden erişebilirsiniz.");
+      alert("Ayarlar penceresi tetiklenemedi. State aktarımında bir problem var.");
     }
   };
 
@@ -86,7 +86,6 @@ function Header({ showProjectModal, setShowProjectModal }) {
         <nav className="menu-bar">
           {Object.keys(menuItems).map((menuName) => (
             <div key={menuName} className="menu-item">
-              {/* Mobil dokunma desteği eklendi */}
               <button
                 className={`menu-btn ${menuOpen === menuName ? 'active' : ''}`}
                 onClick={() => handleMenuClick(menuName)}
