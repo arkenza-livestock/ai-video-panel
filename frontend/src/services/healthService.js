@@ -3,9 +3,12 @@ import apiClient from './apiClient';
 // Check API health
 export const checkHealth = async () => {
   try {
-    const response = await apiClient.get('/health');
+    // HATA DÜZELTİLDİ: Tanımlı olmayan /health yerine backend'in ana dizinine (/) istek atıyoruz
+    const response = await apiClient.get('/');
+    
+    // Backend ana dizinden {"Hello": "World"} döndüğü için response veya response.Hello kontrolü yeterlidir
     return {
-      isHealthy: response.status === 'ok' || response.status === 'healthy',
+      isHealthy: !!response, 
       response,
     };
   } catch (error) {
