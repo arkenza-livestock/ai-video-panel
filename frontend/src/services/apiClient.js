@@ -1,5 +1,5 @@
-// API Base URL - Çakışmaları önlemek için yeni atadığımız 8080 portu tanımlandı
-const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://72.62.186.96:8080';
+// API Base URL - Çakışmaları tamamen aşmak için yeni atadığımız 9005 portu tanımlandı
+const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://72.62.186.96:9005';
 
 // API CLIENT CLASS
 class APIClient {
