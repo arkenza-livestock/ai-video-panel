@@ -9,7 +9,7 @@ function Header({ showProjectModal, setShowProjectModal }) {
     handleRedo,
     historyIndex,
     history,
-    setShowSettingsModal,
+    setShowSettingsModal, // Context içinde tanımsız olma ihtimaline karşı aşağıda korumaya alındı
     saveProject,
   } = useEditor();
 
@@ -23,7 +23,7 @@ function Header({ showProjectModal, setShowProjectModal }) {
     File: [
       { label: 'New Project', icon: '📄', action: () => { setShowProjectModal(true); setMenuOpen(null); } },
       { label: 'Open Project', icon: '📂', action: () => { setShowProjectModal(true); setMenuOpen(null); } },
-      { label: 'Save', icon: '💾', action: () => { saveProject(); setMenuOpen(null); } },
+      { label: 'Save', icon: '💾', action: () => { saveProject ? saveProject() : alert("Kaydetme fonksiyonu henüz hazır değil."); setMenuOpen(null); } },
       { label: 'Recent', icon: '⏱️' },
       { label: 'Exit', icon: '🚪' },
     ],
@@ -44,10 +44,21 @@ function Header({ showProjectModal, setShowProjectModal }) {
     ],
   };
 
+  // Ayarlar butonuna basılınca çökmeyi engelleyen güvenli tetikleyici
+  const handleSettingsClick = () => {
+    if (typeof setShowSettingsModal === 'function') {
+      setShowSettingsModal(true);
+    } else {
+      // Eğer modal fonksiyonu yoksa kullanıcıyı çökme ekranı yerine bilgilendiriyoruz
+      alert("Ayarlar penceresi (Modal) şu an aktif değil. Proje ayarlarına sağ taraftaki 'Project Settings' panelinden erişebilirsiniz.");
+    }
+  };
+
   return (
     <header className="header">
       <div className="header-left">
-        <h1 className="app-title">🌙 {projectSettings.projectName}</h1>
+        {/* Proje ismi boş veya tanımsız gelse bile çökmemesi için ?. ve || koruması eklendi */}
+        <h1 className="app-title">🌙 {projectSettings?.projectName || 'Atmosfer Studio'}</h1>
       </div>
 
       <div className="header-center">
@@ -63,13 +74,13 @@ function Header({ showProjectModal, setShowProjectModal }) {
           <button 
             className="redo-btn"
             onClick={handleRedo}
-            disabled={historyIndex >= history.length - 1}
+            disabled={historyIndex >= (history?.length || 1) - 1}
             title="Redo (Ctrl+Y)"
           >
             ↷ Redo
           </button>
           <span className="history-info">
-            {historyIndex + 1}/{history.length}
+            {historyIndex + 1}/{history?.length || 1}
           </span>
         </div>
       </div>
@@ -107,7 +118,7 @@ function Header({ showProjectModal, setShowProjectModal }) {
 
         <button 
           className="settings-btn"
-          onClick={() => setShowSettingsModal(true)}
+          onClick={handleSettingsClick} // Güvenli fonksiyona bağlandı
           title="Settings (Ctrl+,)"
         >
           ⚙️ Settings
