@@ -1,17 +1,14 @@
-// API Base URL - Localhost yerine canlı sunucu IP adresi ve portu tanımlandı
-const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://72.62.186.96:8000';
+// API Base URL - Çakışmaları önlemek için yeni atadığımız 8080 portu tanımlandı
+const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://72.62.186.96:8080';
 
 // API CLIENT CLASS
 class APIClient {
   constructor(baseURL = API_BASE_URL) {
-    // URL sonundaki '/' işaretini temizleyerek çift slash hatasını önlüyoruz
     this.baseURL = baseURL.endsWith('/') ? baseURL.slice(0, -1) : baseURL;
     this.timeout = 30000;
   }
 
-  // Generic fetch method
   async request(endpoint, options = {}) {
-    // Endpoint'in başında '/' işareti olduğundan emin oluyoruz
     const formattedEndpoint = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
     const url = `${this.baseURL}${formattedEndpoint}`;
     
@@ -22,7 +19,6 @@ class APIClient {
       timeout: this.timeout,
     };
 
-    // Mevcut header'ları korumak için derin birleştirme (merge) yapıyoruz
     const config = { 
       ...defaultOptions, 
       ...options,
@@ -57,12 +53,10 @@ class APIClient {
     }
   }
 
-  // GET
   get(endpoint) {
     return this.request(endpoint, { method: 'GET' });
   }
 
-  // POST
   post(endpoint, data) {
     return this.request(endpoint, {
       method: 'POST',
@@ -70,7 +64,6 @@ class APIClient {
     });
   }
 
-  // PUT
   put(endpoint, data) {
     return this.request(endpoint, {
       method: 'PUT',
@@ -78,12 +71,10 @@ class APIClient {
     });
   }
 
-  // DELETE
   delete(endpoint) {
     return this.request(endpoint, { method: 'DELETE' });
   }
 
-  // File Upload
   async upload(endpoint, file) {
     const formattedEndpoint = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
     const formData = new FormData();
