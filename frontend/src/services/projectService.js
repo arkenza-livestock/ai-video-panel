@@ -1,34 +1,36 @@
 import apiClient from './apiClient';
 
-// PROJECT ENDPOINTS
-export const projectService = {
-  // Get all projects
-  getProjects: () => apiClient.get('/api/projects'),
+// Fonksiyonları tek tek (Named Export) dışa aktarıyoruz ki EditorContext doğrudan okuyabilsin
+export const getProjects = () => apiClient.get('/api/projects');
 
-  // Create new project
-  createProject: (settings) => apiClient.post('/api/projects', settings),
+export const createProject = (settings) => apiClient.post('/api/projects', settings);
 
-  // Get project by ID
-  getProject: (projectId) => apiClient.get(`/api/projects/${projectId}`),
+export const getProject = (projectId) => apiClient.get(`/api/projects/${projectId}`);
 
-  // Update project
-  updateProject: (projectId, data) => apiClient.put(`/api/projects/${projectId}`, data),
+export const updateProject = (projectId, data) => apiClient.put(`/api/projects/${projectId}`, data);
 
-  // Delete project
-  deleteProject: (projectId) => apiClient.delete(`/api/projects/${projectId}`),
+export const deleteProject = (projectId) => apiClient.delete(`/api/projects/${projectId}`);
 
-  // Save timeline
-  saveTimeline: (projectId, timeline) =>
-    apiClient.post(`/api/projects/${projectId}/timeline`, timeline),
+export const saveTimeline = (projectId, timeline) =>
+  apiClient.post(`/api/projects/${projectId}/timeline`, timeline);
 
-  // Get assets
-  getAssets: () => apiClient.get('/api/assets'),
+export const getAssets = () => apiClient.get('/api/assets');
 
-  // Get effects
-  getEffects: () => apiClient.get('/api/effects'),
+export const getEffects = () => apiClient.get('/api/effects');
 
-  // Upload file
-  uploadFile: (file) => apiClient.upload('/api/upload', file),
+export const uploadFile = (file) => apiClient.upload('/api/upload', file);
+
+// Eski yapıyla uyumluluk için toplu nesne (Default Export) olarak da dışa aktarıyoruz
+const projectService = {
+  getProjects,
+  createProject,
+  getProject,
+  updateProject,
+  deleteProject,
+  saveTimeline,
+  getAssets,
+  getEffects,
+  uploadFile,
 };
 
 export default projectService;
