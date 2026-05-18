@@ -1,5 +1,4 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-// Import yapısını güncel servis yapımıza uydurduk
 import * as projectService from '../services/projectService';
 import * as healthService from '../services/healthService';
 
@@ -15,7 +14,8 @@ export function EditorProvider({ children }) {
   const [history, setHistory] = useState([[]]);
   const [historyIndex, setHistoryIndex] = useState(0);
 
-  const [currentProjectId, setCurrentProjectId] = useState(null);
+  // Arayüzün kilitlenmemesi için varsayılan bir geçici proje ID'si atıyoruz
+  const [currentProjectId, setCurrentProjectId] = useState('default-session');
   const [projectSettings, setProjectSettings] = useState({
     projectName: 'Yeni Proje',
     fps: 30,
@@ -27,16 +27,21 @@ export function EditorProvider({ children }) {
   const [apiReady, setApiReady] = useState(false);
   const [apiError, setApiError] = useState(null);
   const [isSaving, setIsSaving] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
+  
+  // Arayüzün donup kalmasını engellemek için isLoading başlangıcını false yapıyoruz
+  const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
     const checkAPI = async () => {
       try {
-        await healthService.waitForAPI();
-        setApiReady(true);
-        setIsLoading(false);
+        if (healthService && typeof healthService.waitForAPI === 'function') {
+          await healthService.waitForAPI();
+          setApiReady(true);
+        }
       } catch (err) {
+        console.warn('API servisine şu an erişilemiyor, lokal modda çalışıyor.');
         setApiError('API servisi erişilemez');
+      } finally {
         setIsLoading(false);
       }
     };
@@ -44,7 +49,7 @@ export function EditorProvider({ children }) {
   }, []);
 
   useEffect(() => {
-    if (!apiReady || !currentProjectId) return;
+    if (!apiReady || currentProjectId === 'default-session') return;
     const saveInterval = setInterval(() => {
       saveProject();
     }, 30000);
@@ -114,16 +119,27 @@ export function EditorProvider({ children }) {
   };
 
   const createNewProject = async (name) => {
+    const fallbackName = name || 'Yeni Proje';
+    setProjectSettings({
+      projectName: fallbackName,
+      fps: 30,
+      resolution: '1920x1080',
+      bitrate: '5000k',
+      audioFormat: 'aac',
+    });
+    setTimeline([]);
+    setHistory([[]]);
+    setHistoryIndex(0);
+
     try {
       setIsSaving(true);
-      const project = await projectService.createProject(name);
-      setCurrentProjectId(project.id);
-      setTimeline([]);
-      setHistory([[]]);
-      setHistoryIndex(0);
-      return project;
+      if (projectService && typeof projectService.createProject === 'function') {
+        const project = await projectService.createProject(fallbackName);
+        if (project && project.id) setCurrentProjectId(project.id);
+        return project;
+      }
     } catch (err) {
-      setApiError('Proje oluşturulamadı');
+      console.error('Proje backend üzerinde oluşturulamadı, lokal çalışılıyor:', err);
     } finally {
       setIsSaving(false);
     }
@@ -132,13 +148,15 @@ export function EditorProvider({ children }) {
   const loadProject = async (projectId) => {
     try {
       setIsLoading(true);
-      const project = await projectService.getProject(projectId);
-      setCurrentProjectId(projectId);
-      setTimeline(project.timeline || []);
-      setProjectSettings(project.settings || projectSettings);
-      setHistory([project.timeline || []]);
-      setHistoryIndex(0);
-      return project;
+      if (projectService && typeof projectService.getProject === 'function') {
+        const project = await projectService.getProject(projectId);
+        setCurrentProjectId(projectId);
+        setTimeline(project.timeline || []);
+        setProjectSettings(project.settings || projectSettings);
+        setHistory([project.timeline || []]);
+        setHistoryIndex(0);
+        return project;
+      }
     } catch (err) {
       setApiError('Proje yüklenemedi');
     } finally {
@@ -147,13 +165,15 @@ export function EditorProvider({ children }) {
   };
 
   const saveProject = async () => {
-    if (!currentProjectId) return;
+    if (!currentProjectId || currentProjectId === 'default-session') return;
     try {
       setIsSaving(true);
-      await projectService.updateProject(currentProjectId, {
-        timeline,
-        settings: projectSettings,
-      });
+      if (projectService && typeof projectService.updateProject === 'function') {
+        await projectService.updateProject(currentProjectId, {
+          timeline,
+          settings: projectSettings,
+        });
+      }
     } catch (err) {
       setApiError('Proje kaydedilemedi');
     } finally {
@@ -163,9 +183,11 @@ export function EditorProvider({ children }) {
 
   const deleteProject = async (projectId) => {
     try {
-      await projectService.deleteProject(projectId);
+      if (projectService && typeof projectService.deleteProject === 'function') {
+        await projectService.deleteProject(projectId);
+      }
       if (currentProjectId === projectId) {
-        setCurrentProjectId(null);
+        setCurrentProjectId('default-session');
         setTimeline([]);
       }
     } catch (err) {
@@ -173,27 +195,18 @@ export function EditorProvider({ children }) {
     }
   };
 
-  // EKSİK OLAN EXPORT VİDEO FONKSİYONU EKLENDİ
   const exportVideo = async () => {
-    if (!currentProjectId) {
-      alert("Lütfen önce bir proje oluşturun veya yükleyin.");
-      return;
-    }
     try {
       setIsSaving(true);
-      alert("Video işleme backend üzerinde başlatıldı. Lütfen bekleyin...");
-      
-      // Eğer exportService varsa oradan, yoksa doğrudan proje servisi üzerinden tetikliyoruz
-      if (projectService.saveTimeline) {
-        await projectService.saveTimeline(currentProjectId, timeline);
+      alert("Video oluşturma talebi backend'e iletiliyor...");
+      if (projectService && typeof projectService.exportVideo === 'function') {
+        await projectService.exportVideo(currentProjectId, timeline);
+        alert("Export işlemi başarıyla başlatıldı!");
+      } else {
+        alert("Export endpoint servisi henüz backend API dosyasında tanımlı değil.");
       }
-      
-      // Backend'deki ihraç/export endpoint'ini tetikliyoruz
-      // Not: Eğer apiClient üzerinde özel bir export endpoint'i varsa burayı ona göre revize edebiliriz.
-      alert("Export işlemi başarıyla tamamlandı!");
     } catch (err) {
       alert("Video dönüştürme (Export) sırasında bir hata oluştu.");
-      setApiError('Video ihraç edilemedi');
     } finally {
       setIsSaving(false);
     }
@@ -225,7 +238,7 @@ export function EditorProvider({ children }) {
     loadProject,
     saveProject,
     deleteProject,
-    exportVideo, // Fonksiyon dışarıya aktarıldı
+    exportVideo,
     apiReady,
     apiError,
     isSaving,
