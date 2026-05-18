@@ -1,5 +1,5 @@
-// API Base URL - Coolify izole port mimarisine uygun olarak 8085 portuna yönlendirildi
-const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://72.62.186.96:8085';
+// Backend portumuzu yeni ve temiz olan 8090 limanına yönlendirdik
+const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://72.62.186.96:8090';
 
 class APIClient {
   constructor(baseURL = API_BASE_URL) {
