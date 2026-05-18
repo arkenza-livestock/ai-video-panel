@@ -1,10 +1,10 @@
-// İstekler doğrudan sunucunun yeni ve temiz portu olan 8088'e yönlendirildi
-const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://72.62.186.96:8088';
+// İstekler doğrudan sunucunun yeni, temiz ve izole edilmiş portu olan 8089'a yönlendirildi
+const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://72.62.186.96:8089';
 
 class APIClient {
   constructor(baseURL = API_BASE_URL) {
     this.baseURL = baseURL.endsWith('/') ? baseURL.slice(0, -1) : baseURL;
-    this.timeout = 30000;
+    this.timeout = 30000; // 30 saniye zaman aşımı
   }
 
   async request(endpoint, options = {}) {
