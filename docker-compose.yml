@@ -7,8 +7,8 @@ services:
       dockerfile: Dockerfile
     image: atmosfer-backend:latest
     container_name: atmosfer-backend-app
-    ports:
-      - "9005:8000"
+    # HATA DÜZELTİLDİ: Dış port bağımlılığını kaldırıp sunucu içi izolasyona alıyoruz
+    network_mode: "host"
     env_file:
       - ./backend/.env
     volumes:
