@@ -1,229 +1,97 @@
 import React, { useState } from 'react';
 import { useEditor } from '../context/EditorContext';
-import AudioMixer from '../AudioMixer'; 
-import '../styles/Inspector.css';
+import '../styles/Inspector.css'; // Gerekirse kendi stil dosyanın yolunu yazabilirsin
 
-// HATA DÜZELTİLDİ: App.jsx'ten gelen modal tetikleyicileri artık parametre olarak alınıyor!
-function Inspector({ setShowExportDialog, setShowSettingsModal }) {
-  const {
-    timeline,
-    selectedClip,
-    setSelectedClip,
-    selectedEffect,
-    setSelectedEffect,
-    projectSettings,
-    updateProjectSettings, // Doğrudan merkezi güncelleme fonksiyonunu kullanıyoruz
-    applyEffect,
-    duration,
-    setDuration,
-  } = useEditor();
+function ExportDialog({ isOpen, onClose }) {
+  const { timeline, projectSettings } = useEditor();
+  const [loading, setLoading] = useState(false);
 
-  const effects = [
-    { id: 1, name: 'Fade In', icon: '✨' },
-    { id: 2, name: 'Fade Out', icon: '✨' },
-    { id: 3, name: 'Zoom', icon: '🔍' },
-    { id: 4, name: 'Blur', icon: '🌫️' },
-    { id: 5, name: 'Speed Up', icon: '⚡' },
-    { id: 6, name: 'Color Grade', icon: '🎨' },
-  ];
+  // Eğer modal açık değilse ekrana hiçbir şey basma
+  if (!isOpen) return null;
 
-  const handleApplyEffect = () => {
-    if (!selectedClip || !selectedEffect) return;
-    applyEffect(selectedClip.id, selectedEffect);
-    setSelectedClip({ ...selectedClip, effects: [...(selectedClip.effects || []), selectedEffect] });
-  };
+  const handleExportVideo = async () => {
+    const API_URL = "http://72.62.186.96:8000"; 
+    setLoading(true);
 
-  const formatTime = (sec) => {
-    if (!sec) return '00:00';
-    const m = Math.floor(sec / 60);
-    const s = Math.floor(sec % 60);
-    return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
-  };
+    try {
+      const response = await fetch(`${API_URL}/export`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          projectId: projectSettings?.projectName || "yeni_proje",
+          fps: 30,
+          assets: timeline || [] 
+        }),
+      });
 
-  const handleSettingChange = (key, value) => {
-    if (updateProjectSettings) {
-      updateProjectSettings({ [key]: value });
+      const result = await response.json();
+
+      if (result.status === "success") {
+        alert("Başarılı: " + result.message);
+        if (onClose) onClose(); // Başarılıysa pencereyi kapat
+      } else {
+        alert("Backend Hatası: " + result.message);
+      }
+
+    } catch (error) {
+      console.error("Bağlantı Hatası:", error);
+      alert("API Bağlantı Hatası: Sunucuya ulaşılamadı. Lütfen 8000 portunun açık olduğundan emin olun.");
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
-    <aside className="sidebar sidebar-right">
-      
-      {selectedClip ? (
-        <>
-          {/* CLIP INFO */}
-          <div className="panel">
-            <h3>📋 Clip Info</h3>
-            <div className="clip-info-grid">
-              <div className="info-item">
-                <label>Name</label>
-                <p>{selectedClip.name}</p>
-              </div>
-              <div className="info-item">
-                <label>Type</label>
-                <p>{selectedClip.type === 'video' ? '🎬 Video' : '🎵 Audio'}</p>
-              </div>
-              <div className="info-item">
-                <label>Duration</label>
-                <p>{formatTime(selectedClip.duration)}</p>
-              </div>
-              <div className="info-item">
-                <label>Start Time</label>
-                <p>{formatTime(selectedClip.startTime)}</p>
-              </div>
-              <div className="info-item full-width">
-                <label>Volume</label>
-                <input 
-                  type="range" 
-                  min="0" 
-                  max="100" 
-                  defaultValue={selectedClip.volume || 100}
-                  className="volume-slider"
-                />
-                <span className="volume-label">{selectedClip.volume || 100}%</span>
-              </div>
-            </div>
-          </div>
-
-          {/* EFFECTS PANEL */}
-          <div className="panel">
-            <h3>✨ Add Effects</h3>
-            <div className="effects-grid">
-              {effects.map(effect => (
-                <button
-                  key={effect.id}
-                  className={`effect-btn ${selectedEffect?.id === effect.id ? 'active' : ''}`}
-                  onClick={() => setSelectedEffect(effect)}
-                  title={effect.name}
-                >
-                  <span>{effect.icon}</span>
-                  <span className="effect-name">{effect.name}</span>
-                </button>
-              ))}
-            </div>
-            <button className="apply-effect-btn" onClick={handleApplyEffect}>
-              ➕ Apply Effect
-            </button>
-          </div>
-
-          {/* APPLIED EFFECTS */}
-          <div className="panel">
-            <h3>📊 Applied Effects</h3>
-            {selectedClip.effects && selectedClip.effects.length > 0 ? (
-              <div className="effects-list">
-                {selectedClip.effects.map((eff, i) => (
-                  <div key={i} className="effect-badge">
-                    <span>{eff.icon} {eff.name}</span>
-                    <button 
-                      className="remove-effect"
-                      onClick={() => {
-                        const newEffects = selectedClip.effects.filter((_, idx) => idx !== i);
-                        setSelectedClip({ ...selectedClip, effects: newEffects });
-                      }}
-                    >
-                      ✕
-                    </button>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <p className="empty-state">No effects applied</p>
-            )}
-          </div>
-        </>
-      ) : (
-        <>
-          {/* AUDIO MIXER */}
-          <AudioMixer clips={timeline || []} />
-
-          {/* SHORTCUTS */}
-          <div className="panel">
-            <h3>⌨️ Keyboard Shortcuts</h3>
-            <div className="shortcuts-list">
-              <div className="shortcut-item">
-                <kbd>Space</kbd>
-                <span>Play/Pause</span>
-              </div>
-              <div className="shortcut-item">
-                <kbd>Del</kbd>
-                <span>Delete clip</span>
-              </div>
-              <div className="shortcut-item">
-                <kbd>←/→</kbd>
-                <span>Seek</span>
-              </div>
-              <div className="shortcut-item">
-                <kbd>D</kbd>
-                <span>Deselect</span>
-              </div>
-              <div className="shortcut-item">
-                <kbd>Ctrl+Z</kbd>
-                <span>Undo</span>
-              </div>
-              <div className="shortcut-item">
-                <kbd>Ctrl+Y</kbd>
-                <span>Redo</span>
-              </div>
-              <div className="shortcut-item">
-                <kbd>Ctrl+E</kbd>
-                <span>Export</span>
-              </div>
-              <div className="shortcut-item">
-                <kbd>Ctrl+,</kbd>
-                <span>Settings</span>
-              </div>
-            </div>
-          </div>
-        </>
-      )}
-
-      {/* QUICK ACTIONS & PROJECT SETTINGS OVERVIEW */}
-      <div className="panel">
-        <h3>⚙️ Quick Actions</h3>
+    <div className="modal-overlay" style={{
+      position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+      backgroundColor: 'rgba(0, 0, 0, 0.7)', display: 'flex',
+      justifyContent: 'center', alignItems: 'center', zIndex: 1000
+    }}>
+      <div className="modal-content" style={{
+        backgroundColor: '#1e1e2e', color: '#fff', padding: '30px',
+        borderRadius: '8px', width: '400px', textAlign: 'center',
+        boxShadow: '0 4px 20px rgba(0,0,0,0.5)'
+      }}>
+        <h2>🎬 Video Export / Render</h2>
+        <p style={{ margin: '15px 0', color: '#aaa' }}>
+          Mevcut projeniz derlenmek üzere sunucuya gönderilecek.
+        </p>
         
-        {/* HATA DÜZELTİLDİ: Artık buradaki butonlar doğrudan App.jsx'teki gerçek modalları tetikliyor! */}
-        <div className="inspector-actions-group" style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginTop: '10px' }}>
+        <div style={{ marginBottom: '20px', fontSize: '14px', textAlign: 'left', backgroundColor: '#252538', padding: '10px', borderRadius: '4px' }}>
+          <strong>Proje Adı:</strong> {projectSettings?.projectName || 'İsimsiz Proje'}<br/>
+          <strong>Element Sayısı:</strong> {timeline?.length || 0} adet
+        </div>
+
+        <div style={{ display: 'flex', gap: '10px', justifyContent: 'center' }}>
           <button 
-            className="action-trigger-btn"
-            onClick={() => setShowSettingsModal && setShowSettingsModal(true)}
-            style={{ padding: '10px', backgroundColor: '#4f46e5', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold' }}
+            onClick={handleExportVideo}
+            disabled={loading}
+            style={{
+              padding: '10px 20px', backgroundColor: '#10b981', color: '#fff',
+              border: 'none', borderRadius: '4px', cursor: loading ? 'not-allowed' : 'pointer',
+              fontWeight: 'bold'
+            }}
           >
-            ⚙️ Open Advanced Settings
+            {loading ? "Gönderiliyor..." : "Render Başlat"}
           </button>
           
           <button 
-            className="action-trigger-btn"
-            onClick={() => setShowExportDialog && setShowExportDialog(true)}
-            style={{ padding: '10px', backgroundColor: '#10b981', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold' }}
+            onClick={onClose}
+            disabled={loading}
+            style={{
+              padding: '10px 20px', backgroundColor: '#ef4444', color: '#fff',
+              border: 'none', borderRadius: '4px', cursor: 'pointer',
+              fontWeight: 'bold'
+            }}
           >
-            🎬 Export / Render Video
+            İptal
           </button>
         </div>
-
-        <div className="settings-group" style={{ marginTop: '20px' }}>
-          <label>Project Name</label>
-          <input 
-            type="text"
-            value={projectSettings?.projectName || ''}
-            onChange={(e) => handleSettingChange('projectName', e.target.value)}
-            className="setting-input"
-          />
-        </div>
-
-        <div className="settings-group">
-          <label>Duration (seconds)</label>
-          <input 
-            type="number"
-            value={duration || 180}
-            onChange={(e) => setDuration(parseInt(e.target.value) || 10)}
-            className="setting-input"
-            min="10"
-            max="3600"
-          />
-        </div>
       </div>
-    </aside>
+    </div>
   );
 }
 
-export default Inspector;
+export default ExportDialog;
