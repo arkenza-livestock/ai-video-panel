@@ -1,5 +1,5 @@
-// API Base URL
-const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000';
+// API Base URL - Localhost yerine canlı sunucu IP adresi ve portu eklendi
+const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://72.62.186.96:8000';
 
 // API CLIENT CLASS
 class APIClient {
