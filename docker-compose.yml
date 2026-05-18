@@ -5,26 +5,10 @@ services:
     build:
       context: ./backend
       dockerfile: Dockerfile
-    image: atmosfer-backend:latest
-    container_name: atmosfer-backend-app
-    ports:
-      - "8089:8089"
-    env_file:
-      - ./backend/.env
-    volumes:
-      - ./backend/projects:/app/projects
-      - ./backend/exports:/app/exports
-      - ./backend/atmosfer.db:/app/atmosfer.db
-    restart: always
+    # Eğer varsa ports, environment vb. ayarların aynen kalsın, sadece üstteki build kısmını düzelt.
 
   frontend:
     build:
       context: ./frontend
       dockerfile: Dockerfile
-    image: atmosfer-frontend:latest
-    container_name: atmosfer-frontend-app
-    ports:
-      - "3012:3012"
-    restart: always
-    depends_on:
-      - backend
+    # Frontend'e ait diğer ayarların aynen kalsın.
