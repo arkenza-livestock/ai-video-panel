@@ -1,31 +1,39 @@
 version: '3.8'
 
 services:
-  frontend:
-    build:
-      context: ./frontend
-      dockerfile: Dockerfile
-    container_name: atmosfer-frontend
-    ports:
-      - "3012:3013"
-    environment:
-      - REACT_APP_API_URL=http://72.62.186.96:8002
-      - PORT=3013
-    restart: unless-stopped
-    depends_on:
-      - backend
-
   backend:
     build:
       context: ./backend
       dockerfile: Dockerfile
-    container_name: atmosfer-backend
+    image: atmosfer-backend:latest
+    container_name: atmosfer-backend-app
+    # HATA DÜZELTİLDİ: Çakışma yaşanan 8002 portu yerine temiz olan 8000 portuna bağlandı
     ports:
-      - "8002:8000"
-    environment:
-      - API_HOST=0.0.0.0
-      - API_PORT=8000
-    restart: unless-stopped
+      - "8000:8000"
+    env_file:
+      - ./backend/.env
     volumes:
       - ./backend/projects:/app/projects
       - ./backend/exports:/app/exports
+      - ./backend/atmosfer.db:/app/atmosfer.db
+    restart: always
+    networks:
+      - atmosfer-network
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    image: atmosfer-frontend:latest
+    container_name: atmosfer-frontend-app
+    ports:
+      - "3012:3012"
+    restart: always
+    depends_on:
+      - backend
+    networks:
+      - atmosfer-network
+
+networks:
+  atmosfer-network:
+    driver: bridge
