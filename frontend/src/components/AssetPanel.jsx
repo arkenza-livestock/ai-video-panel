@@ -3,7 +3,8 @@ import { useEditor } from '../context/EditorContext';
 import '../styles/AssetPanel.css';
 
 function AssetPanel() {
-  const { currentTime, addClip } = useEditor();
+  // exportVideo fonksiyonu context'ten çekildi
+  const { currentTime, addClip, exportVideo } = useEditor();
   const [searchQuery, setSearchQuery] = useState('');
 
   const allAssets = [
@@ -39,6 +40,27 @@ function AssetPanel() {
     const m = Math.floor(sec / 60);
     const s = Math.floor(sec % 60);
     return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+  };
+
+  // HTTP ortamlarında çökmeyi engelleyen güvenli kopyalama fonksiyonu
+  const handleColorClick = (hex) => {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(hex)
+        .then(() => console.log(`Renk kopyalandı: ${hex}`))
+        .catch(err => console.error("Kopyalama başarısız:", err));
+    } else {
+      // Pano erişimi yoksa uygulamayı çökertmek yerine alert veriyoruz
+      alert(`Seçilen Renk Kodu: ${hex} (Güvenli bağlantı -HTTPS- olmadığı için panoya otomatik kopyalanamadı)`);
+    }
+  };
+
+  // Güvenli Export Tetikleyicisi
+  const handleExportClick = () => {
+    if (exportVideo) {
+      exportVideo();
+    } else {
+      alert("Export fonksiyonu şu an backend üzerinde hazır değil veya tanımlanmamış.");
+    }
   };
 
   return (
@@ -87,10 +109,7 @@ function AssetPanel() {
               className="color-btn"
               style={{ backgroundColor: color.hex }}
               title={color.name}
-              onClick={() => {
-                // Copy hex to clipboard
-                navigator.clipboard.writeText(color.hex);
-              }}
+              onClick={() => handleColorClick(color.hex)} // Güvenli fonksiyona bağlandı
             />
           ))}
         </div>
@@ -99,7 +118,11 @@ function AssetPanel() {
       {/* EXPORT PANEL */}
       <div className="panel">
         <h3>📤 Export</h3>
-        <button className="export-btn" title="Export Video (Ctrl+E)">
+        <button 
+          className="export-btn" 
+          title="Export Video (Ctrl+E)"
+          onClick={handleExportClick} // Tıklama işlevi eklendi
+        >
           🚀 Export Video
         </button>
       </div>
