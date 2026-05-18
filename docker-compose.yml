@@ -7,7 +7,6 @@ services:
       dockerfile: Dockerfile
     image: atmosfer-backend:latest
     container_name: atmosfer-backend-app
-    # HATA DÜZELTİLDİ: Dış port bağımlılığını kaldırıp sunucu içi izolasyona alıyoruz
     network_mode: "host"
     env_file:
       - ./backend/.env
@@ -23,8 +22,9 @@ services:
       dockerfile: Dockerfile
     image: atmosfer-frontend:latest
     container_name: atmosfer-frontend-app
+    # Çakışmayı önlemek için dış portu 3015 yaptık
     ports:
-      - "3012:3012"
+      - "3015:3012"
     restart: always
     depends_on:
       - backend
