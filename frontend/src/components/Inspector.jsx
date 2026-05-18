@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useEditor } from '../context/EditorContext';
-import AudioMixer from '../AudioMixer'; // Dosya yolu bir üst klasöre çıkacak şekilde güncellendi
+import AudioMixer from '../AudioMixer'; 
 import '../styles/Inspector.css';
 
 function Inspector() {
@@ -29,10 +29,11 @@ function Inspector() {
   const handleApplyEffect = () => {
     if (!selectedClip || !selectedEffect) return;
     applyEffect(selectedClip.id, selectedEffect);
-    setSelectedClip({ ...selectedClip, effects: [...selectedClip.effects, selectedEffect] });
+    setSelectedClip({ ...selectedClip, effects: [...(selectedClip.effects || []), selectedEffect] });
   };
 
   const formatTime = (sec) => {
+    if (!sec) return '00:00';
     const m = Math.floor(sec / 60);
     const s = Math.floor(sec % 60);
     return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
@@ -73,10 +74,10 @@ function Inspector() {
                   type="range" 
                   min="0" 
                   max="100" 
-                  defaultValue={selectedClip.volume}
+                  defaultValue={selectedClip.volume || 100}
                   className="volume-slider"
                 />
-                <span className="volume-label">{selectedClip.volume}%</span>
+                <span className="volume-label">{selectedClip.volume || 100}%</span>
               </div>
             </div>
           </div>
@@ -130,7 +131,7 @@ function Inspector() {
       ) : (
         <>
           {/* AUDIO MIXER */}
-          <AudioMixer clips={timeline} />
+          <AudioMixer clips={timeline || []} />
 
           {/* SHORTCUTS */}
           <div className="panel">
@@ -180,7 +181,7 @@ function Inspector() {
           <label>Project Name</label>
           <input 
             type="text"
-            value={projectSettings.projectName}
+            value={projectSettings?.projectName || ''}
             onChange={(e) => handleSettingChange('projectName', e.target.value)}
             className="setting-input"
           />
@@ -190,8 +191,8 @@ function Inspector() {
           <label>Duration (seconds)</label>
           <input 
             type="number"
-            value={duration}
-            onChange={(e) => setDuration(parseInt(e.target.value))}
+            value={duration || 180}
+            onChange={(e) => setDuration(parseInt(e.target.value) || 10)}
             className="setting-input"
             min="10"
             max="3600"
@@ -201,7 +202,7 @@ function Inspector() {
         <div className="settings-group">
           <label>FPS</label>
           <select 
-            value={projectSettings.fps}
+            value={projectSettings?.fps || 30}
             onChange={(e) => handleSettingChange('fps', parseInt(e.target.value))}
             className="setting-select"
           >
@@ -214,7 +215,7 @@ function Inspector() {
         <div className="settings-group">
           <label>Resolution</label>
           <select 
-            value={projectSettings.resolution}
+            value={projectSettings?.resolution || '1080p'}
             onChange={(e) => handleSettingChange('resolution', e.target.value)}
             className="setting-select"
           >
@@ -228,7 +229,7 @@ function Inspector() {
         <div className="settings-group">
           <label>Bitrate</label>
           <select 
-            value={projectSettings.bitrate}
+            value={projectSettings?.bitrate || 'medium'}
             onChange={(e) => handleSettingChange('bitrate', e.target.value)}
             className="setting-select"
           >
@@ -241,7 +242,7 @@ function Inspector() {
         <div className="settings-group">
           <label>Audio Format</label>
           <select 
-            value={projectSettings.audioFormat}
+            value={projectSettings?.audioFormat || 'aac'}
             onChange={(e) => handleSettingChange('audioFormat', e.target.value)}
             className="setting-select"
           >
