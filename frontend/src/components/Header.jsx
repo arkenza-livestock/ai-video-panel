@@ -9,7 +9,7 @@ function Header({ showProjectModal, setShowProjectModal }) {
     handleRedo,
     historyIndex,
     history,
-    setShowSettingsModal, // Context içinde tanımsız olma ihtimaline karşı aşağıda korumaya alındı
+    setShowSettingsModal,
     saveProject,
   } = useEditor();
 
@@ -21,9 +21,9 @@ function Header({ showProjectModal, setShowProjectModal }) {
 
   const menuItems = {
     File: [
-      { label: 'New Project', icon: '📄', action: () => { setShowProjectModal(true); setMenuOpen(null); } },
-      { label: 'Open Project', icon: '📂', action: () => { setShowProjectModal(true); setMenuOpen(null); } },
-      { label: 'Save', icon: '💾', action: () => { saveProject ? saveProject() : alert("Kaydetme fonksiyonu henüz hazır değil."); setMenuOpen(null); } },
+      { label: 'New Project', icon: '📄', action: () => { if(setShowProjectModal) setShowProjectModal(true); setMenuOpen(null); } },
+      { label: 'Open Project', icon: '📂', action: () => { if(setShowProjectModal) setShowProjectModal(true); setMenuOpen(null); } },
+      { label: 'Save', icon: '💾', action: () => { if(saveProject) saveProject(); setMenuOpen(null); } },
       { label: 'Recent', icon: '⏱️' },
       { label: 'Exit', icon: '🚪' },
     ],
@@ -44,12 +44,10 @@ function Header({ showProjectModal, setShowProjectModal }) {
     ],
   };
 
-  // Ayarlar butonuna basılınca çökmeyi engelleyen güvenli tetikleyici
   const handleSettingsClick = () => {
     if (typeof setShowSettingsModal === 'function') {
       setShowSettingsModal(true);
     } else {
-      // Eğer modal fonksiyonu yoksa kullanıcıyı çökme ekranı yerine bilgilendiriyoruz
       alert("Ayarlar penceresi (Modal) şu an aktif değil. Proje ayarlarına sağ taraftaki 'Project Settings' panelinden erişebilirsiniz.");
     }
   };
@@ -57,8 +55,7 @@ function Header({ showProjectModal, setShowProjectModal }) {
   return (
     <header className="header">
       <div className="header-left">
-        {/* Proje ismi boş veya tanımsız gelse bile çökmemesi için ?. ve || koruması eklendi */}
-        <h1 className="app-title">🌙 {projectSettings?.projectName || 'Atmosfer Studio'}</h1>
+        <h1 className="app-title">🌙 {projectSettings?.projectName || 'Yeni Proje'}</h1>
       </div>
 
       <div className="header-center">
@@ -89,9 +86,14 @@ function Header({ showProjectModal, setShowProjectModal }) {
         <nav className="menu-bar">
           {Object.keys(menuItems).map((menuName) => (
             <div key={menuName} className="menu-item">
+              {/* Mobil dokunma desteği eklendi */}
               <button
                 className={`menu-btn ${menuOpen === menuName ? 'active' : ''}`}
                 onClick={() => handleMenuClick(menuName)}
+                onTouchStart={(e) => {
+                  e.preventDefault();
+                  handleMenuClick(menuName);
+                }}
               >
                 {menuName}
               </button>
@@ -102,6 +104,11 @@ function Header({ showProjectModal, setShowProjectModal }) {
                       key={i}
                       className="dropdown-item"
                       onClick={() => {
+                        if (item.action) item.action();
+                        setMenuOpen(null);
+                      }}
+                      onTouchStart={(e) => {
+                        e.preventDefault();
                         if (item.action) item.action();
                         setMenuOpen(null);
                       }}
@@ -118,7 +125,11 @@ function Header({ showProjectModal, setShowProjectModal }) {
 
         <button 
           className="settings-btn"
-          onClick={handleSettingsClick} // Güvenli fonksiyona bağlandı
+          onClick={handleSettingsClick}
+          onTouchStart={(e) => {
+            e.preventDefault();
+            handleSettingsClick();
+          }}
           title="Settings (Ctrl+,)"
         >
           ⚙️ Settings
