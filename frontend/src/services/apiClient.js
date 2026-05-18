@@ -1,5 +1,5 @@
-// İsteklerin istemci tarayıcısından doğrudan sunucuya akması için VPS IP adresi sabitlendi
-const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://72.62.186.96:8000';
+// İstekler doğrudan sunucunun yeni ve temiz portu olan 8088'e yönlendirildi
+const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://72.62.186.96:8088';
 
 class APIClient {
   constructor(baseURL = API_BASE_URL) {
