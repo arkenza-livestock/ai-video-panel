@@ -72,17 +72,13 @@ function App() {
     );
   }
 
-  // API hatası olsa bile uygulamanın kilitlenip kalmaması ve lokal modda 
-  // test edilebilmesi için hata ekranı kaldırıldı, üstte küçük uyarı olarak gösterilecek
   return (
     <div className="app-container">
       {isSaving && <div className="saving-indicator">💾 Kaydediliyor...</div>}
       
-      {/* API durumuna göre üst taraftaki bilgilendirme barları */}
       {apiError && <div className="api-warning" style={{ backgroundColor: '#ef4444' }}>⚠️ {apiError} (Lokal Mod Aktif)</div>}
       {!apiReady && !apiError && <div className="api-warning">⚠️ API hazırlanıyor...</div>}
 
-      {/* EKSİK OLAN TÜM PROPLAR VE SETTER'LAR HEADER BİLEŞENİNE AKTARILDI */}
       <Header
         showProjectModal={showProjectModal}
         setShowProjectModal={setShowProjectModal}
@@ -107,10 +103,23 @@ function App() {
         setShowProjectModal={setShowProjectModal}
       />
 
-      {/* MODAL DIALOG PENCERELERİ */}
+      {/* DIALOG VE MODAL PENCERELERİ - PROPLAR EKSİKSİZ HALE GETİRİLDİ */}
       {showExportDialog && <ExportDialog onClose={() => setShowExportDialog(false)} />}
-      {showProjectModal && <ProjectModal onClose={() => setShowProjectModal(false)} />}
-      {showSettingsModal && <SettingsModal onClose={() => setShowSettingsModal(false)} />}
+      
+      {showProjectModal && (
+        <ProjectModal 
+          isOpen={showProjectModal} 
+          onClose={() => setShowProjectModal(false)} 
+          onProjectSelect={() => setShowProjectModal(false)} 
+        />
+      )}
+      
+      {showSettingsModal && (
+        <SettingsModal 
+          isOpen={showSettingsModal} 
+          onClose={() => setShowSettingsModal(false)} 
+        />
+      )}
     </div>
   );
 }
