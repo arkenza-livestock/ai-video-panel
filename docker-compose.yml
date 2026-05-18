@@ -9,7 +9,7 @@ services:
     ports:
       - "3012:3013"
     environment:
-      - REACT_APP_API_URL=http://localhost:8002
+      - REACT_APP_API_URL=http://72.62.186.96:8002
       - PORT=3013
     restart: unless-stopped
     depends_on:
