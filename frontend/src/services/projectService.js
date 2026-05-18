@@ -1,36 +1,31 @@
-import apiClient from './apiClient';
+// Projenizdeki mevcut export fonksiyonunu bununla güncelleyin:
+export const exportProjectVideo = async (projectId, settings = {}) => {
+  // Docker compose dosyasında backend'i 8002 portuna bağladığımız için istekleri oraya yönlendiriyoruz
+  const API_BASE_URL = "http://72.62.186.96:8002"; 
+  
+  try {
+    const response = await fetch(`${API_BASE_URL}/api/projects/${projectId}/export`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ settings }),
+    });
 
-// Fonksiyonları tek tek (Named Export) dışa aktarıyoruz ki EditorContext doğrudan okuyabilsin
-export const getProjects = () => apiClient.get('/api/projects');
+    if (!response.ok) {
+      throw new Error(`Export işlemi başarısız oldu: ${response.statusText}`);
+    }
 
-export const createProject = (settings) => apiClient.post('/api/projects', settings);
-
-export const getProject = (projectId) => apiClient.get(`/api/projects/${projectId}`);
-
-export const updateProject = (projectId, data) => apiClient.put(`/api/projects/${projectId}`, data);
-
-export const deleteProject = (projectId) => apiClient.delete(`/api/projects/${projectId}`);
-
-export const saveTimeline = (projectId, timeline) =>
-  apiClient.post(`/api/projects/${projectId}/timeline`, timeline);
-
-export const getAssets = () => apiClient.get('/api/assets');
-
-export const getEffects = () => apiClient.get('/api/effects');
-
-export const uploadFile = (file) => apiClient.upload('/api/upload', file);
-
-// Eski yapıyla uyumluluk için toplu nesne (Default Export) olarak da dışa aktarıyoruz
-const projectService = {
-  getProjects,
-  createProject,
-  getProject,
-  updateProject,
-  deleteProject,
-  saveTimeline,
-  getAssets,
-  getEffects,
-  uploadFile,
+    return await response.json(); // Backend'den dönen başarılı sonucu teslim et
+  } catch (error) {
+    console.error("Export API Error:", error);
+    throw error;
+  }
 };
 
+// Dosyanın altındaki export default listesine eklemeyi unutmayın:
+const projectService = {
+  // ... diğer mevcut fonksiyonlarınız (getProjects, loadProject vb.)
+  exportProjectVideo,
+};
 export default projectService;
