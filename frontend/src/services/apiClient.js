@@ -1,5 +1,5 @@
-// Backend portumuzu yeni ve temiz olan 8090 limanına yönlendirdik
-const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://72.62.186.96:8090';
+// İsteklerin istemci tarayıcısından doğrudan sunucuya akması için VPS IP adresi sabitlendi
+const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://72.62.186.96:8000';
 
 class APIClient {
   constructor(baseURL = API_BASE_URL) {
