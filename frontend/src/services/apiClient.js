@@ -1,5 +1,5 @@
-// API Base URL - Çakışmaları tamamen aşmak için yeni atadığımız 9005 portu tanımlandı
-const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://72.62.186.96:9005';
+// API Base URL - Host modu sayesinde doğrudan ana makinenin 8000 portuna güvenle istek atabiliyoruz
+const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://72.62.186.96:8000';
 
 // API CLIENT CLASS
 class APIClient {
