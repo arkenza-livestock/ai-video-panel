@@ -1,7 +1,5 @@
-// API Base URL - Host modu sayesinde doğrudan ana makinenin 8000 portuna güvenle istek atabiliyoruz
 const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://72.62.186.96:8000';
 
-// API CLIENT CLASS
 class APIClient {
   constructor(baseURL = API_BASE_URL) {
     this.baseURL = baseURL.endsWith('/') ? baseURL.slice(0, -1) : baseURL;
