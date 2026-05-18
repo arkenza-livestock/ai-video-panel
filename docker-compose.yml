@@ -7,9 +7,9 @@ services:
       dockerfile: Dockerfile
     image: atmosfer-backend:latest
     container_name: atmosfer-backend-app
-    # HATA DÜZELTİLDİ: Çakışmaları aşmak için dış port 8080 olarak değiştirildi
+    # HATA DÜZELTİLDİ: Sunucudaki tüm standart port çakışmalarını aşmak için 9005 portu atandı
     ports:
-      - "8080:8000"
+      - "9005:8000"
     env_file:
       - ./backend/.env
     volumes:
