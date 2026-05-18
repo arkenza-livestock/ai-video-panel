@@ -1,22 +1,17 @@
+import apiClient from './apiClient';
+
 // Projenizdeki mevcut export fonksiyonunu bununla güncelleyin:
 export const exportProjectVideo = async (projectId, settings = {}) => {
-  // Docker compose dosyasında backend'i 8002 portuna bağladığımız için istekleri oraya yönlendiriyoruz
-  const API_BASE_URL = "http://72.62.186.96:8002"; 
-  
   try {
-    const response = await fetch(`${API_BASE_URL}/api/projects/${projectId}/export`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ settings }),
+    // HATA DÜZELTİLDİ: Ayrı bir fetch ve yanlış port/endpoint kullanmak yerine,
+    // doğrudan bizim tanımladığımız /export endpoint'ine apiClient ile güvenli istek atıyoruz.
+    const response = await apiClient.post('/export', {
+      projectId: projectId || "yeni_proje",
+      fps: settings.fps || 30,
+      assets: settings.assets || [] // Eğer ayarlar içinde elementler varsa gönderir
     });
 
-    if (!response.ok) {
-      throw new Error(`Export işlemi başarısız oldu: ${response.statusText}`);
-    }
-
-    return await response.json(); // Backend'den dönen başarılı sonucu teslim et
+    return response; // Backend'den dönen başarılı sonucu teslim et
   } catch (error) {
     console.error("Export API Error:", error);
     throw error;
@@ -25,7 +20,8 @@ export const exportProjectVideo = async (projectId, settings = {}) => {
 
 // Dosyanın altındaki export default listesine eklemeyi unutmayın:
 const projectService = {
-  // ... diğer mevcut fonksiyonlarınız (getProjects, loadProject vb.)
+  // ... diğer mevcut fonksiyonlarınız (getProjects, loadProject vb. buraya gelecek)
   exportProjectVideo,
 };
+
 export default projectService;
