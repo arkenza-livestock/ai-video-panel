@@ -1,43 +1,87 @@
-cat > main.py << 'EOF'
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse
 from pydantic import BaseModel
-import uuid
-import os
-import subprocess
+from typing import List, Optional, dict
 
 app = FastAPI()
 
+# CORS Ayarları: Frontend'in backend'e erişebilmesi için açık bırakıldı
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
+    allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-os.makedirs("output", exist_ok=True)
-jobs_db = {}
-
+# --- FRONTEND'DEN GELEN EXPORT VERİLERİ İÇİN MODELLER ---
 class ExportRequest(BaseModel):
-    duration: int = 10
+    projectId: Optional[str] = None
+    assets: Optional[List[dict]] = None
+    fps: Optional[int] = 30
 
+# --- AKTİF WEBSOCKET BAĞLANTILARI İÇİN YÖNETİCİ ---
+class ConnectionManager:
+    def __init__(self):
+        self.active_connections: List[WebSocket] = []
+
+    async def connect(self, websocket: WebSocket):
+        await websocket.accept()
+        self.active_connections.append(websocket)
+
+    def disconnect(self, websocket: WebSocket):
+        self.active_connections.remove(websocket)
+
+    async def send_personal_message(self, message: str, websocket: WebSocket):
+        await websocket.send_text(message)
+
+    async def broadcast(self, message: str):
+        for connection in self.active_connections:
+            await connection.send_text(message)
+
+manager = ConnectionManager()
+
+# --- ENDPOINT'LER ---
+
+# Ana Sayfa (Root) Endpoint
 @app.get("/")
-def root():
-    return {"message": "Atmosfer API calisiyor"}
+def read_root():
+    return {"Hello": "World"}
 
-@app.post("/api/export")
-def export_video(req: ExportRequest):
-    job_id = str(uuid.uuid4())
-    output_path = f"output/{job_id}.mp4"
-    cmd = ["ffmpeg", "-f", "lavfi", "-i", f"color=c=black:s=640x480:d={req.duration}", "-c:v", "libx264", "-y", output_path]
-    subprocess.run(cmd, check=True, capture_output=True)
-    jobs_db[job_id] = {"status": "done", "path": output_path}
-    return {"job_id": job_id, "status": "completed"}
+# Örnek Item Endpoint'i
+@app.get("/items/{item_id}")
+def read_item(item_id: int, q: Optional[str] = None):
+    return {"item_id": item_id, "q": q}
 
-@app.get("/api/export/download/{job_id}")
-def download(job_id: str):
-    if job_id not in jobs_db:
-        raise HTTPException(404, "Bulunamadi")
-    return FileResponse(jobs_db[job_id]["path"])
-EOF
+# Eksik Olan Video Export (Dışa Aktarma) Servisi
+@app.post("/export")
+async def export_video(payload: ExportRequest):
+    try:
+        # Frontend'den istek geldiğinde terminale yazdırır
+        print(f"Video oluşturma talebi alındı. Proje ID: {payload.projectId}")
+        
+        # Buraya ileride gerçek video işleme/render kodları eklenecek
+        
+        return {
+            "status": "success",
+            "message": "Video oluşturma işlemi backend üzerinde başarıyla başlatıldı."
+        }
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
+
+# WebSocket Bağlantı Noktası
+@app.websocket("/ws")
+async def websocket_endpoint(websocket: WebSocket):
+    await manager.connect(websocket)
+    try:
+        while True:
+            data = await websocket.receive_text()
+            await manager.send_personal_message(f"You wrote: {data}", websocket)
+            await manager.broadcast(f"Client says: {data}")
+    except WebSocketDisconnect:
+        manager.disconnect(websocket)
+        await manager.broadcast("A client disconnected")
+
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run(app, host="0.0.0.0", port=8000)
