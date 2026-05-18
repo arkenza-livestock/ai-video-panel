@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useEditor } from '../context/EditorContext';
 import '../styles/Header.css';
 
@@ -12,22 +12,21 @@ function Header({ showProjectModal, setShowProjectModal, showSettingsModal, setS
     saveProject,
   } = useEditor();
 
-  const [menuOpen, setMenuOpen] = React.useState(null);
+  const [menuOpen, setMenuOpen] = useState(null);
 
-  // Menü açma/kapama fonksiyonunu mobilde de kararlı çalışacak şekilde güncelledik
   const handleMenuToggle = (e, menuName) => {
     if (e) {
       e.preventDefault();
-      e.stopPropagation(); // Tıklamanın dışarı sızıp menüyü anında kapatmasını engeller
+      e.stopPropagation();
     }
-    setMenuOpen(prevMenu => (prevMenu === menuName ? null : menuName));
+    setMenuOpen(prev => (prev === menuName ? null : menuName));
   };
 
   const menuItems = {
     File: [
-      { label: 'New Project', icon: '📄', action: () => { if(setShowProjectModal) setShowProjectModal(true); } },
-      { label: 'Open Project', icon: '📂', action: () => { if(setShowProjectModal) setShowProjectModal(true); } },
-      { label: 'Save', icon: '💾', action: () => { if(saveProject) saveProject(); } },
+      { label: 'New Project', icon: '📄', action: () => { if (setShowProjectModal) setShowProjectModal(true); } },
+      { label: 'Open Project', icon: '📂', action: () => { if (setShowProjectModal) setShowProjectModal(true); } },
+      { label: 'Save', icon: '💾', action: () => { if (saveProject) saveProject(); } },
       { label: 'Recent', icon: '⏱️' },
       { label: 'Exit', icon: '🚪' },
     ],
@@ -53,10 +52,9 @@ function Header({ showProjectModal, setShowProjectModal, showSettingsModal, setS
       e.preventDefault();
       e.stopPropagation();
     }
-    if (typeof setShowSettingsModal === 'function') {
+    // Eski alert uyarısını tamamen sildik, doğrudan modalı tetikliyoruz
+    if (setShowSettingsModal) {
       setShowSettingsModal(true);
-    } else {
-      alert("Ayarlar penceresi tetiklenemedi.");
     }
     setMenuOpen(null);
   };
@@ -67,11 +65,10 @@ function Header({ showProjectModal, setShowProjectModal, showSettingsModal, setS
       e.stopPropagation();
     }
     if (action) action();
-    setMenuOpen(null); // Seçim yapılınca menüyü kapat
+    setMenuOpen(null);
   };
 
-  // Dışarıya tıklanınca veya dokunulunca menünün kapanması için global dinleyici
-  React.useEffect(() => {
+  useEffect(() => {
     const closeAllMenus = () => setMenuOpen(null);
     window.addEventListener('pointerdown', closeAllMenus);
     return () => window.removeEventListener('pointerdown', closeAllMenus);
@@ -85,18 +82,10 @@ function Header({ showProjectModal, setShowProjectModal, showSettingsModal, setS
 
       <div className="header-center">
         <div className="undo-redo-group">
-          <button 
-            className="undo-btn"
-            onClick={handleUndo}
-            disabled={historyIndex <= 0}
-          >
+          <button className="undo-btn" onClick={handleUndo} disabled={historyIndex <= 0}>
             ↶ Undo
           </button>
-          <button 
-            className="redo-btn"
-            onClick={handleRedo}
-            disabled={historyIndex >= (history?.length || 1) - 1}
-          >
+          <button className="redo-btn" onClick={handleRedo} disabled={historyIndex >= (history?.length || 1) - 1}>
             ↷ Redo
           </button>
           <span className="history-info">
@@ -109,7 +98,6 @@ function Header({ showProjectModal, setShowProjectModal, showSettingsModal, setS
         <nav className="menu-bar">
           {Object.keys(menuItems).map((menuName) => (
             <div key={menuName} className="menu-item" onClick={(e) => e.stopPropagation()}>
-              {/* Hem dokunma hem tıklama için en kararlı modern olay mimarisi (onPointerDown) kullanıldı */}
               <button
                 className={`menu-btn ${menuOpen === menuName ? 'active' : ''}`}
                 onPointerDown={(e) => handleMenuToggle(e, menuName)}
@@ -136,8 +124,7 @@ function Header({ showProjectModal, setShowProjectModal, showSettingsModal, setS
 
         <button 
           className="settings-btn"
-          onPointerDown={(e) => handleSettingsClick(e)}
-          title="Settings (Ctrl+,)"
+          onPointerDown={handleSettingsClick}
         >
           ⚙️ Settings
         </button>
