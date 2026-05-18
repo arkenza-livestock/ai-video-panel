@@ -1,194 +1,118 @@
 import React, { useState } from 'react';
-import './SettingsModal.css';
+import { useEditor } from './context/EditorContext';
+import './SettingsModal.css'; // Dosya isminiz farklıysa güncelleyin (örn: ProjectSettings.css)
 
-function SettingsModal({ isOpen, onClose, onSave, projectSettings }) {
-  const [settings, setSettings] = useState(projectSettings || {
-    projectName: 'Untitled Project',
-    fps: 30,
-    resolution: '1080p',
-    bitrate: 'high',
-    audioFormat: 'aac',
-    theme: 'dark',
-  });
+function SettingsModal({ isOpen, onClose }) {
+  const { projectSettings, updateProjectSettings } = useEditor();
 
-  const handleChange = (key, value) => {
-    setSettings({ ...settings, [key]: value });
-  };
+  const [projectName, setProjectName] = useState(projectSettings?.projectName || 'Untitled Project');
+  const [resolution, setResolution] = useState(projectSettings?.resolution || '1080p');
+  const [frameRate, setFrameRate] = useState(projectSettings?.frameRate || 30);
+  const [bitrate, setBitrate] = useState(projectSettings?.bitrate || 'High (Best quality)');
+  const [audioFormat, setAudioFormat] = useState(projectSettings?.audioFormat || 'AAC (Better compression)');
+  const [defaultVolume, setDefaultVolume] = useState(projectSettings?.defaultVolume || 80);
+  const [theme, setTheme] = useState(projectSettings?.theme || 'Dark');
 
-  const handleSave = () => {
-    onSave(settings);
-    onClose();
+  // HATA DÜZELTİLDİ: Artık çöken dış onSave proplarına bağımlı değil!
+  const handleSaveClick = (e) => {
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+    
+    if (updateProjectSettings) {
+      updateProjectSettings({
+        projectName,
+        resolution,
+        frameRate,
+        bitrate,
+        audioFormat,
+        defaultVolume,
+        theme
+      });
+    }
+
+    if (onClose) onClose();
   };
 
   if (!isOpen) return null;
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
-      <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-        <div className="modal-header">
-          <h2>⚙️ Project Settings</h2>
-          <button className="modal-close" onClick={onClose}>×</button>
+    <div className="settings-modal-overlay" onClick={onClose}>
+      <div className="settings-modal" onClick={(e) => e.stopPropagation()}>
+        <div className="settings-header">
+          <h3>⚙️ Project Settings</h3>
+          <button className="close-x-btn" onClick={onClose}>✕</button>
         </div>
 
-        <div className="modal-body">
-          
-          {/* PROJECT INFO */}
+        <div className="settings-content">
+          {/* Project Info */}
           <div className="settings-section">
-            <h3>📋 Project Info</h3>
-            <div className="setting-item">
-              <label>Project Name</label>
-              <input 
-                type="text" 
-                value={settings.projectName}
-                onChange={(e) => handleChange('projectName', e.target.value)}
-                placeholder="Enter project name"
-              />
+            <h4>📄 Project Info</h4>
+            <label>Project Name</label>
+            <input 
+              type="text" 
+              value={projectName} 
+              onChange={(e) => setProjectName(e.target.value)} 
+            />
+          </div>
+
+          {/* Video Settings */}
+          <div className="settings-section">
+            <h4>🎬 Video Settings</h4>
+            <label>Resolution</label>
+            <div className="btn-group">
+              {['480p', '720p', '1080p', '4K'].map(res => (
+                <button 
+                  key={res} 
+                  className={resolution === res ? 'active' : ''} 
+                  onClick={() => setResolution(res)}
+                >
+                  {res}
+                </button>
+              ))}
+            </div>
+
+            <label>Frame Rate (FPS)</label>
+            <div className="btn-group">
+              {[24, 30, 60].map(fps => (
+                <button 
+                  key={fps} 
+                  className={frameRate === fps ? 'active' : ''} 
+                  onClick={() => setFrameRate(fps)}
+                >
+                  {fps}
+                </button>
+              ))}
             </div>
           </div>
 
-          {/* VIDEO SETTINGS */}
+          {/* Audio Settings */}
           <div className="settings-section">
-            <h3>🎬 Video Settings</h3>
-            
-            <div className="setting-item">
-              <label>Resolution</label>
-              <div className="option-group">
-                {['480p', '720p', '1080p', '4K'].map(res => (
-                  <button
-                    key={res}
-                    className={`option-btn ${settings.resolution === res ? 'active' : ''}`}
-                    onClick={() => handleChange('resolution', res)}
-                  >
-                    {res}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            <div className="setting-item">
-              <label>Frame Rate (FPS)</label>
-              <div className="option-group">
-                {[24, 30, 60].map(fps => (
-                  <button
-                    key={fps}
-                    className={`option-btn ${settings.fps === fps ? 'active' : ''}`}
-                    onClick={() => handleChange('fps', fps)}
-                  >
-                    {fps}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            <div className="setting-item">
-              <label>Bitrate</label>
-              <select 
-                value={settings.bitrate}
-                onChange={(e) => handleChange('bitrate', e.target.value)}
-              >
-                <option value="low">Low (Smaller file)</option>
-                <option value="medium">Medium (Balanced)</option>
-                <option value="high">High (Best quality)</option>
-              </select>
-            </div>
+            <h4>🎵 Audio Settings</h4>
+            <label>Default Volume ({defaultVolume}%)</label>
+            <input 
+              type="range" 
+              min="0" 
+              max="100" 
+              value={defaultVolume} 
+              onChange={(e) => setDefaultVolume(Number(e.target.value))} 
+            />
           </div>
 
-          {/* AUDIO SETTINGS */}
+          {/* Appearance */}
           <div className="settings-section">
-            <h3>🎵 Audio Settings</h3>
-            
-            <div className="setting-item">
-              <label>Audio Format</label>
-              <select 
-                value={settings.audioFormat}
-                onChange={(e) => handleChange('audioFormat', e.target.value)}
-              >
-                <option value="aac">AAC (Better compression)</option>
-                <option value="mp3">MP3 (Universal)</option>
-                <option value="flac">FLAC (Lossless)</option>
-              </select>
-            </div>
-
-            <div className="setting-item">
-              <label>Default Volume</label>
-              <div className="volume-slider">
-                <input 
-                  type="range" 
-                  min="0" 
-                  max="100" 
-                  defaultValue="80"
-                  className="slider"
-                />
-                <span>80%</span>
-              </div>
+            <h4>🎨 Appearance</h4>
+            <div className="btn-group">
+              <button className={theme === 'Dark' ? 'active' : ''} onClick={() => setTheme('Dark')}>🌙 Dark</button>
+              <button className={theme === 'Light' ? 'active' : ''} onClick={() => setTheme('Light')}>☀️ Light</button>
             </div>
           </div>
-
-          {/* UI SETTINGS */}
-          <div className="settings-section">
-            <h3>🎨 Appearance</h3>
-            
-            <div className="setting-item">
-              <label>Theme</label>
-              <div className="option-group">
-                {['dark', 'light'].map(theme => (
-                  <button
-                    key={theme}
-                    className={`option-btn ${settings.theme === theme ? 'active' : ''}`}
-                    onClick={() => handleChange('theme', theme)}
-                  >
-                    {theme === 'dark' ? '🌙 Dark' : '☀️ Light'}
-                  </button>
-                ))}
-              </div>
-            </div>
-          </div>
-
-          {/* KEYBOARD SHORTCUTS */}
-          <div className="settings-section">
-            <h3>⌨️ Keyboard Shortcuts</h3>
-            <div className="shortcuts-list">
-              <div className="shortcut-item">
-                <span>Play/Pause</span>
-                <code>Space</code>
-              </div>
-              <div className="shortcut-item">
-                <span>Delete Clip</span>
-                <code>Del</code>
-              </div>
-              <div className="shortcut-item">
-                <span>Undo</span>
-                <code>Ctrl+Z</code>
-              </div>
-              <div className="shortcut-item">
-                <span>Redo</span>
-                <code>Ctrl+Y</code>
-              </div>
-              <div className="shortcut-item">
-                <span>Export</span>
-                <code>Ctrl+E</code>
-              </div>
-              <div className="shortcut-item">
-                <span>Settings</span>
-                <code>Ctrl+,</code>
-              </div>
-            </div>
-          </div>
-
         </div>
 
-        <div className="modal-footer">
-          <button className="btn-reset" onClick={() => setSettings(projectSettings)}>
-            ↺ Reset
-          </button>
-          <div>
-            <button className="btn-cancel" onClick={onClose}>
-              Cancel
-            </button>
-            <button className="btn-save" onClick={handleSave}>
-              ✓ Save
-            </button>
-          </div>
+        <div className="settings-footer">
+          <button className="cancel-settings-btn" onClick={onClose}>Cancel</button>
+          <button className="save-settings-btn" onClick={handleSaveClick}>✓ Save</button>
         </div>
       </div>
     </div>
