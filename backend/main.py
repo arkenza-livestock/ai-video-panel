@@ -1,16 +1,16 @@
-from fastapi import FastAPI, File, UploadFile, HTTPException
-from fastapi.responses import JSONResponse, FileResponse
+cat > /root/main.py << 'EOF'
+from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse, JSONResponse
 from pydantic import BaseModel
-from typing import List, Optional
+import uuid
 import os
 import json
+import subprocess
 from datetime import datetime
-import uuid
 
-app = FastAPI(title="Atmosfer Studio API", version="1.0.0")
+app = FastAPI(title="Atmosfer Stüdyo API")
 
-# CORS Configuration
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -19,265 +19,89 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Models
-class Clip(BaseModel):
-    id: float
-    name: str
-    type: str
-    icon: str
-    track: str
-    startTime: float
-    duration: float
-    effects: List[dict] = []
-    volume: int = 100
+# Klasörler
+os.makedirs("temp", exist_ok=True)
+os.makedirs("output", exist_ok=True)
 
-class Timeline(BaseModel):
-    clips: List[Clip]
-    duration: int
-    fps: int
-    resolution: str
-
-class ProjectSettings(BaseModel):
-    projectName: str
-    fps: int
-    resolution: str
-    bitrate: str
-    audioFormat: str
-    theme: str
+# Video job veritabanı
+jobs_db = {}
 
 class ExportRequest(BaseModel):
-    format: str
-    quality: str
-    fps: int
+    timeline: dict = {}
+    duration: int = 60
+    resolution: str = "1920x1080"
+    fps: int = 30
 
-# STORAGE
-PROJECTS_DIR = "projects"
-EXPORTS_DIR = "exports"
+@app.get("/")
+def root():
+    return {"message": "Atmosfer Stüdyo API çalışıyor", "status": "active"}
 
-if not os.path.exists(PROJECTS_DIR):
-    os.makedirs(PROJECTS_DIR)
-if not os.path.exists(EXPORTS_DIR):
-    os.makedirs(EXPORTS_DIR)
-
-# HEALTH CHECK
 @app.get("/health")
-async def health_check():
-    return {
-        "status": "ok",
-        "service": "Atmosfer Studio API",
-        "version": "1.0.0",
-        "timestamp": datetime.now().isoformat()
-    }
+def health():
+    return {"status": "ok"}
 
-# PROJECTS
-@app.get("/api/projects")
-async def get_projects():
-    """List all projects"""
-    try:
-        projects = []
-        if os.path.exists(PROJECTS_DIR):
-            for file in os.listdir(PROJECTS_DIR):
-                if file.endswith('.json'):
-                    projects.append({
-                        "id": file.replace('.json', ''),
-                        "name": file.replace('.json', ''),
-                        "created": os.path.getctime(os.path.join(PROJECTS_DIR, file))
-                    })
-        return {"projects": projects}
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-
-@app.post("/api/projects")
-async def create_project(settings: ProjectSettings):
-    """Create new project"""
-    try:
-        project_id = str(uuid.uuid4())
-        project_data = {
-            "id": project_id,
-            "settings": settings.dict(),
-            "timeline": [],
-            "created": datetime.now().isoformat()
-        }
-        
-        with open(f"{PROJECTS_DIR}/{project_id}.json", 'w') as f:
-            json.dump(project_data, f, indent=2)
-        
-        return {"id": project_id, "message": "Project created successfully"}
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-
-@app.get("/api/projects/{project_id}")
-async def get_project(project_id: str):
-    """Get project by ID"""
-    try:
-        path = f"{PROJECTS_DIR}/{project_id}.json"
-        if not os.path.exists(path):
-            raise HTTPException(status_code=404, detail="Project not found")
-        
-        with open(path, 'r') as f:
-            project = json.load(f)
-        return project
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-
-@app.put("/api/projects/{project_id}")
-async def update_project(project_id: str, data: dict):
-    """Update project"""
-    try:
-        path = f"{PROJECTS_DIR}/{project_id}.json"
-        if not os.path.exists(path):
-            raise HTTPException(status_code=404, detail="Project not found")
-        
-        with open(path, 'r') as f:
-            project = json.load(f)
-        
-        project.update(data)
-        project["updated"] = datetime.now().isoformat()
-        
-        with open(path, 'w') as f:
-            json.dump(project, f, indent=2)
-        
-        return {"message": "Project updated successfully"}
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-
-@app.delete("/api/projects/{project_id}")
-async def delete_project(project_id: str):
-    """Delete project"""
-    try:
-        path = f"{PROJECTS_DIR}/{project_id}.json"
-        if not os.path.exists(path):
-            raise HTTPException(status_code=404, detail="Project not found")
-        
-        os.remove(path)
-        return {"message": "Project deleted successfully"}
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-
-# TIMELINE
-@app.post("/api/projects/{project_id}/timeline")
-async def save_timeline(project_id: str, timeline: Timeline):
-    """Save timeline for project"""
-    try:
-        path = f"{PROJECTS_DIR}/{project_id}.json"
-        if not os.path.exists(path):
-            raise HTTPException(status_code=404, detail="Project not found")
-        
-        with open(path, 'r') as f:
-            project = json.load(f)
-        
-        project["timeline"] = [clip.dict() for clip in timeline.clips]
-        project["settings"]["fps"] = timeline.fps
-        project["settings"]["resolution"] = timeline.resolution
-        project["updated"] = datetime.now().isoformat()
-        
-        with open(path, 'w') as f:
-            json.dump(project, f, indent=2)
-        
-        return {"message": "Timeline saved successfully"}
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-
-# EXPORT
 @app.post("/api/export")
-async def export_video(export_request: ExportRequest):
-    """Start video export job"""
-    try:
-        export_id = str(uuid.uuid4())
-        
-        export_job = {
-            "id": export_id,
-            "format": export_request.format,
-            "quality": export_request.quality,
-            "fps": export_request.fps,
-            "status": "queued",
-            "progress": 0,
-            "created": datetime.now().isoformat()
-        }
-        
-        # Save export job (would be sent to worker queue in production)
-        with open(f"{EXPORTS_DIR}/{export_id}.json", 'w') as f:
-            json.dump(export_job, f, indent=2)
-        
-        return {
-            "export_id": export_id,
-            "message": "Export job created",
-            "status": "queued"
-        }
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-
-@app.get("/api/export/{export_id}")
-async def get_export_status(export_id: str):
-    """Get export job status"""
-    try:
-        path = f"{EXPORTS_DIR}/{export_id}.json"
-        if not os.path.exists(path):
-            raise HTTPException(status_code=404, detail="Export job not found")
-        
-        with open(path, 'r') as f:
-            job = json.load(f)
-        
-        return job
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-
-# ASSETS
-@app.get("/api/assets")
-async def get_assets():
-    """Get available assets"""
-    assets = [
-        {"id": 1, "name": "Video 1", "type": "video", "icon": "🎬", "duration": 30},
-        {"id": 2, "name": "Video 2", "type": "video", "icon": "🎬", "duration": 45},
-        {"id": 3, "name": "Background", "type": "audio", "icon": "🎵", "duration": 180},
-        {"id": 4, "name": "Nature", "type": "audio", "icon": "🎵", "duration": 120},
-        {"id": 5, "name": "Ambience", "type": "audio", "icon": "🎵", "duration": 160},
+def export_video(request: ExportRequest):
+    """Video oluşturma endpoint'i"""
+    job_id = str(uuid.uuid4())
+    
+    # İş bilgilerini kaydet
+    job_data = {
+        "job_id": job_id,
+        "status": "processing",
+        "duration": request.duration,
+        "resolution": request.resolution,
+        "fps": request.fps,
+        "created_at": datetime.now().isoformat()
+    }
+    jobs_db[job_id] = job_data
+    
+    # FFmpeg ile basit video oluştur
+    output_path = f"output/{job_id}.mp4"
+    
+    cmd = [
+        "ffmpeg", "-f", "lavfi", "-i",
+        f"color=c=black:s={request.resolution}:d={request.duration}",
+        "-vf", f"drawtext=text='Atmosfer Stüdyo':fontcolor=white:fontsize=70:x=(w-text_w)/2:y=(h-text_h)/2",
+        "-c:v", "libx264",
+        "-r", str(request.fps),
+        "-y", output_path
     ]
-    return {"assets": assets}
-
-# EFFECTS
-@app.get("/api/effects")
-async def get_effects():
-    """Get available effects"""
-    effects = [
-        {"id": 1, "name": "Fade In", "icon": "✨"},
-        {"id": 2, "name": "Fade Out", "icon": "✨"},
-        {"id": 3, "name": "Zoom", "icon": "🔍"},
-        {"id": 4, "name": "Blur", "icon": "🌫️"},
-        {"id": 5, "name": "Speed Up", "icon": "⚡"},
-        {"id": 6, "name": "Color Grade", "icon": "🎨"},
-    ]
-    return {"effects": effects}
-
-# FILE UPLOAD
-@app.post("/api/upload")
-async def upload_file(file: UploadFile = File(...)):
-    """Upload media file"""
+    
     try:
-        file_id = str(uuid.uuid4())
-        file_path = f"{PROJECTS_DIR}/{file_id}_{file.filename}"
-        
-        with open(file_path, "wb") as f:
-            content = await file.read()
-            f.write(content)
-        
-        return {
-            "id": file_id,
-            "filename": file.filename,
-            "size": len(content),
-            "message": "File uploaded successfully"
-        }
+        subprocess.run(cmd, check=True, capture_output=True)
+        job_data["status"] = "completed"
+        job_data["output_path"] = output_path
+        return {"job_id": job_id, "status": "completed", "message": "Video oluşturuldu"}
     except Exception as e:
+        job_data["status"] = "failed"
+        job_data["error"] = str(e)
         raise HTTPException(status_code=500, detail=str(e))
 
-# ERROR HANDLING
-@app.exception_handler(HTTPException)
-async def http_exception_handler(request, exc):
-    return JSONResponse(
-        status_code=exc.status_code,
-        content={"error": exc.detail}
-    )
+@app.get("/api/export/status/{job_id}")
+def get_export_status(job_id: str):
+    """İş durumunu sorgula"""
+    if job_id not in jobs_db:
+        raise HTTPException(status_code=404, detail="İş bulunamadı")
+    return jobs_db[job_id]
+
+@app.get("/api/export/download/{job_id}")
+def download_video(job_id: str):
+    """Oluşturulan videoyu indir"""
+    if job_id not in jobs_db:
+        raise HTTPException(status_code=404, detail="İş bulunamadı")
+    
+    job = jobs_db[job_id]
+    if job.get("status") != "completed":
+        raise HTTPException(status_code=400, detail="Video henüz hazır değil")
+    
+    output_path = job.get("output_path")
+    if not output_path or not os.path.exists(output_path):
+        raise HTTPException(status_code=404, detail="Video dosyası bulunamadı")
+    
+    return FileResponse(output_path, media_type="video/mp4", filename=f"atmosfer_{job_id}.mp4")
 
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8000)
+EOF
