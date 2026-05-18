@@ -22,9 +22,8 @@ services:
       dockerfile: Dockerfile
     image: atmosfer-frontend:latest
     container_name: atmosfer-frontend-app
-    # Çakışmayı önlemek için dış portu 3015 yaptık
-    ports:
-      - "3015:3012"
+    # HATA DÜZELTİLDİ: Port köprü çakışmalarını bitirmek için frontend de host moduna alındı
+    network_mode: "host"
     restart: always
     depends_on:
       - backend
