@@ -3,7 +3,8 @@ import { useEditor } from '../context/EditorContext';
 import AudioMixer from '../AudioMixer'; 
 import '../styles/Inspector.css';
 
-function Inspector() {
+// HATA DÜZELTİLDİ: App.jsx'ten gelen modal tetikleyicileri artık parametre olarak alınıyor!
+function Inspector({ setShowExportDialog, setShowSettingsModal }) {
   const {
     timeline,
     selectedClip,
@@ -11,7 +12,7 @@ function Inspector() {
     selectedEffect,
     setSelectedEffect,
     projectSettings,
-    setProjectSettings,
+    updateProjectSettings, // Doğrudan merkezi güncelleme fonksiyonunu kullanıyoruz
     applyEffect,
     duration,
     setDuration,
@@ -40,7 +41,9 @@ function Inspector() {
   };
 
   const handleSettingChange = (key, value) => {
-    setProjectSettings({ ...projectSettings, [key]: value });
+    if (updateProjectSettings) {
+      updateProjectSettings({ [key]: value });
+    }
   };
 
   return (
@@ -174,10 +177,30 @@ function Inspector() {
         </>
       )}
 
-      {/* PROJECT SETTINGS */}
+      {/* QUICK ACTIONS & PROJECT SETTINGS OVERVIEW */}
       <div className="panel">
-        <h3>⚙️ Project Settings</h3>
-        <div className="settings-group">
+        <h3>⚙️ Quick Actions</h3>
+        
+        {/* HATA DÜZELTİLDİ: Artık buradaki butonlar doğrudan App.jsx'teki gerçek modalları tetikliyor! */}
+        <div className="inspector-actions-group" style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginTop: '10px' }}>
+          <button 
+            className="action-trigger-btn"
+            onClick={() => setShowSettingsModal && setShowSettingsModal(true)}
+            style={{ padding: '10px', backgroundColor: '#4f46e5', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold' }}
+          >
+            ⚙️ Open Advanced Settings
+          </button>
+          
+          <button 
+            className="action-trigger-btn"
+            onClick={() => setShowExportDialog && setShowExportDialog(true)}
+            style={{ padding: '10px', backgroundColor: '#10b981', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold' }}
+          >
+            🎬 Export / Render Video
+          </button>
+        </div>
+
+        <div className="settings-group" style={{ marginTop: '20px' }}>
           <label>Project Name</label>
           <input 
             type="text"
@@ -197,59 +220,6 @@ function Inspector() {
             min="10"
             max="3600"
           />
-        </div>
-        
-        <div className="settings-group">
-          <label>FPS</label>
-          <select 
-            value={projectSettings?.fps || 30}
-            onChange={(e) => handleSettingChange('fps', parseInt(e.target.value))}
-            className="setting-select"
-          >
-            <option value={24}>24 FPS</option>
-            <option value={30}>30 FPS</option>
-            <option value={60}>60 FPS</option>
-          </select>
-        </div>
-
-        <div className="settings-group">
-          <label>Resolution</label>
-          <select 
-            value={projectSettings?.resolution || '1080p'}
-            onChange={(e) => handleSettingChange('resolution', e.target.value)}
-            className="setting-select"
-          >
-            <option value="480p">480p</option>
-            <option value="720p">720p</option>
-            <option value="1080p">1080p</option>
-            <option value="4K">4K</option>
-          </select>
-        </div>
-
-        <div className="settings-group">
-          <label>Bitrate</label>
-          <select 
-            value={projectSettings?.bitrate || 'medium'}
-            onChange={(e) => handleSettingChange('bitrate', e.target.value)}
-            className="setting-select"
-          >
-            <option value="low">Low (2 Mbps)</option>
-            <option value="medium">Medium (6 Mbps)</option>
-            <option value="high">High (12 Mbps)</option>
-          </select>
-        </div>
-
-        <div className="settings-group">
-          <label>Audio Format</label>
-          <select 
-            value={projectSettings?.audioFormat || 'aac'}
-            onChange={(e) => handleSettingChange('audioFormat', e.target.value)}
-            className="setting-select"
-          >
-            <option value="aac">AAC</option>
-            <option value="mp3">MP3</option>
-            <option value="flac">FLAC</option>
-          </select>
         </div>
       </div>
     </aside>
