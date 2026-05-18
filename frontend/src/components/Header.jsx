@@ -2,7 +2,6 @@ import React from 'react';
 import { useEditor } from '../context/EditorContext';
 import '../styles/Header.css';
 
-// showSettingsModal ve setShowSettingsModal propları parametre listesine eklendi!
 function Header({ showProjectModal, setShowProjectModal, showSettingsModal, setShowSettingsModal }) {
   const {
     projectSettings,
@@ -15,21 +14,26 @@ function Header({ showProjectModal, setShowProjectModal, showSettingsModal, setS
 
   const [menuOpen, setMenuOpen] = React.useState(null);
 
-  const handleMenuClick = (menu) => {
-    setMenuOpen(menuOpen === menu ? null : menu);
+  // Menü açma/kapama fonksiyonunu mobilde de kararlı çalışacak şekilde güncelledik
+  const handleMenuToggle = (e, menuName) => {
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation(); // Tıklamanın dışarı sızıp menüyü anında kapatmasını engeller
+    }
+    setMenuOpen(prevMenu => (prevMenu === menuName ? null : menuName));
   };
 
   const menuItems = {
     File: [
-      { label: 'New Project', icon: '📄', action: () => { if(setShowProjectModal) setShowProjectModal(true); setMenuOpen(null); } },
-      { label: 'Open Project', icon: '📂', action: () => { if(setShowProjectModal) setShowProjectModal(true); setMenuOpen(null); } },
-      { label: 'Save', icon: '💾', action: () => { if(saveProject) saveProject(); setMenuOpen(null); } },
+      { label: 'New Project', icon: '📄', action: () => { if(setShowProjectModal) setShowProjectModal(true); } },
+      { label: 'Open Project', icon: '📂', action: () => { if(setShowProjectModal) setShowProjectModal(true); } },
+      { label: 'Save', icon: '💾', action: () => { if(saveProject) saveProject(); } },
       { label: 'Recent', icon: '⏱️' },
       { label: 'Exit', icon: '🚪' },
     ],
     Edit: [
-      { label: 'Undo', icon: '↶', action: () => { handleUndo(); setMenuOpen(null); } },
-      { label: 'Redo', icon: '↷', action: () => { handleRedo(); setMenuOpen(null); } },
+      { label: 'Undo', icon: '↶', action: () => handleUndo() },
+      { label: 'Redo', icon: '↷', action: () => handleRedo() },
       { label: 'Cut', icon: '✂️' },
       { label: 'Copy', icon: '📋' },
       { label: 'Paste', icon: '📌' },
@@ -44,13 +48,34 @@ function Header({ showProjectModal, setShowProjectModal, showSettingsModal, setS
     ],
   };
 
-  const handleSettingsClick = () => {
+  const handleSettingsClick = (e) => {
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
     if (typeof setShowSettingsModal === 'function') {
       setShowSettingsModal(true);
     } else {
-      alert("Ayarlar penceresi tetiklenemedi. State aktarımında bir problem var.");
+      alert("Ayarlar penceresi tetiklenemedi.");
     }
+    setMenuOpen(null);
   };
+
+  const handleDropdownItemClick = (e, action) => {
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+    if (action) action();
+    setMenuOpen(null); // Seçim yapılınca menüyü kapat
+  };
+
+  // Dışarıya tıklanınca veya dokunulunca menünün kapanması için global dinleyici
+  React.useEffect(() => {
+    const closeAllMenus = () => setMenuOpen(null);
+    window.addEventListener('pointerdown', closeAllMenus);
+    return () => window.removeEventListener('pointerdown', closeAllMenus);
+  }, []);
 
   return (
     <header className="header">
@@ -64,7 +89,6 @@ function Header({ showProjectModal, setShowProjectModal, showSettingsModal, setS
             className="undo-btn"
             onClick={handleUndo}
             disabled={historyIndex <= 0}
-            title="Undo (Ctrl+Z)"
           >
             ↶ Undo
           </button>
@@ -72,7 +96,6 @@ function Header({ showProjectModal, setShowProjectModal, showSettingsModal, setS
             className="redo-btn"
             onClick={handleRedo}
             disabled={historyIndex >= (history?.length || 1) - 1}
-            title="Redo (Ctrl+Y)"
           >
             ↷ Redo
           </button>
@@ -85,14 +108,11 @@ function Header({ showProjectModal, setShowProjectModal, showSettingsModal, setS
       <div className="header-right">
         <nav className="menu-bar">
           {Object.keys(menuItems).map((menuName) => (
-            <div key={menuName} className="menu-item">
+            <div key={menuName} className="menu-item" onClick={(e) => e.stopPropagation()}>
+              {/* Hem dokunma hem tıklama için en kararlı modern olay mimarisi (onPointerDown) kullanıldı */}
               <button
                 className={`menu-btn ${menuOpen === menuName ? 'active' : ''}`}
-                onClick={() => handleMenuClick(menuName)}
-                onTouchStart={(e) => {
-                  e.preventDefault();
-                  handleMenuClick(menuName);
-                }}
+                onPointerDown={(e) => handleMenuToggle(e, menuName)}
               >
                 {menuName}
               </button>
@@ -102,15 +122,7 @@ function Header({ showProjectModal, setShowProjectModal, showSettingsModal, setS
                     <button
                       key={i}
                       className="dropdown-item"
-                      onClick={() => {
-                        if (item.action) item.action();
-                        setMenuOpen(null);
-                      }}
-                      onTouchStart={(e) => {
-                        e.preventDefault();
-                        if (item.action) item.action();
-                        setMenuOpen(null);
-                      }}
+                      onPointerDown={(e) => handleDropdownItemClick(e, item.action)}
                     >
                       <span className="icon">{item.icon}</span>
                       <span className="label">{item.label}</span>
@@ -124,11 +136,7 @@ function Header({ showProjectModal, setShowProjectModal, showSettingsModal, setS
 
         <button 
           className="settings-btn"
-          onClick={handleSettingsClick}
-          onTouchStart={(e) => {
-            e.preventDefault();
-            handleSettingsClick();
-          }}
+          onPointerDown={(e) => handleSettingsClick(e)}
           title="Settings (Ctrl+,)"
         >
           ⚙️ Settings
