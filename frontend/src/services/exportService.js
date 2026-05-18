@@ -2,11 +2,11 @@ import apiClient from './apiClient';
 
 // EXPORT ENDPOINTS
 export const exportService = {
-  // Start export
-  startExport: (exportRequest) => apiClient.post('/api/export', exportRequest),
+  // Start export - HATA DÜZELTİLDİ: /api/export yerine doğrudan backend'deki /export endpoint'ine yönlendirildi
+  startExport: (exportRequest) => apiClient.post('/export', exportRequest),
 
   // Get export status
-  getExportStatus: (exportId) => apiClient.get(`/api/export/${exportId}`),
+  getExportStatus: (exportId) => apiClient.get(`/export/${exportId}`),
 
   // Poll export status (for progress tracking)
   pollExportStatus: (exportId, interval = 1000, maxAttempts = 300) => {
@@ -17,10 +17,11 @@ export const exportService = {
         try {
           const status = await exportService.getExportStatus(exportId);
 
-          if (status.status === 'completed') {
+          // Backend'den gelen 'success' durumuyla uyumlu hale getirildi
+          if (status.status === 'success' || status.status === 'completed') {
             resolve(status);
-          } else if (status.status === 'failed') {
-            reject(new Error(status.error || 'Export failed'));
+          } else if (status.status === 'failed' || status.status === 'error') {
+            reject(new Error(status.error || status.message || 'Export failed'));
           } else if (attempts < maxAttempts) {
             attempts++;
             setTimeout(poll, interval);
