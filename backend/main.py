@@ -1,11 +1,13 @@
-import os
-from fastapi import FastAPI, HTTPException, Depends
+from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from typing import List, Optional
+import uvicorn
 
-app = FastAPI(title="Atmosfer Studio API", version="1.0.0")
+app = FastAPI(
+    title="Atmosfer Studio API",
+    version="2.0"
+)
 
-# CORS AYARLARI
+# Tarayıcıdan erişimde sorun çıkmaması için CORS ayarları
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -16,10 +18,8 @@ app.add_middleware(
 
 @app.get("/")
 def read_root():
-    return {"status": "online", "message": "Atmosfer Studio API v1.0.0 is ready"}
+    return {"status": "ok", "message": "Atmosfer Studio Pro API is running"}
 
-@app.get("/api/health")
-def health_check():
-    return {"status": "healthy", "ready": True}
-
-# Varsa diğer endpoint'lerin bu satırdan itibaren aynen devam etmeli...
+# Docker içerisinde çökmesini engelleyen kritik başlatma kodu
+if __name__ == "__main__":
+    uvicorn.run("main:app", host="0.0.0.0", port=8089)
