@@ -6,18 +6,22 @@ RUN npm install --quiet
 COPY frontend/ ./
 RUN npm run build
 
-# 2. Aşama: Çalışma Ortamı
+# 2. Aşama: Resmi imajdan FFmpeg binary dosyalarını saniyeler içinde alıyoruz (404 İhtimali Yok)
+FROM docker.io/mwader/static-ffmpeg:6.1.1 AS ffmpeg-source
+
+# 3. Aşama: Çalışma Ortamı
 FROM docker.io/library/python:3.10-slim
 WORKDIR /app
 
-# ÇÖZÜM: Önceden derlenmiş statik FFmpeg binary dosyasını saniyeler içinde içeri alıyoruz
-ADD https://github.com/mwolfe38/static-ffmpeg-binaries/raw/master/ffmpeg-linux-64 /usr/bin/ffmpeg
-RUN chmod +x /usr/bin/ffmpeg
+# FFmpeg ve FFprobe'u sıfır indirmeyle doğrudan konteynerin içine kopyalıyoruz
+COPY --from=ffmpeg-source /ffmpeg /usr/bin/ffmpeg
+COPY --from=ffmpeg-source /ffprobe /usr/bin/ffprobe
 
 COPY backend/requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 COPY . .
 
+# Derlenen frontend dosyalarını entegre et
 COPY --from=frontend-builder /app/frontend/build ./frontend/build
 
 WORKDIR /app/backend
