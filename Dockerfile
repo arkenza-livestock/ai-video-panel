@@ -1,13 +1,18 @@
 # 1. Aşama: Sadece Frontend build işlemi
-FROM node:18-alpine AS frontend-builder
+FROM docker.io/library/node:18-alpine AS frontend-builder
 WORKDIR /app/frontend
+
+# package-lock.json olmasa bile hata vermemesi için package*.json olarak kopyalıyoruz
 COPY frontend/package*.json ./
-RUN npm ci --quiet
+
+# npm ci yerine package-lock aramayan düz npm install kullanıyoruz
+RUN npm install --quiet
+
 COPY frontend/ ./
 RUN npm run build
 
 # 2. Aşama: Backend ve Hafifletilmiş Çalışma Ortamı
-FROM python:3.10-slim
+FROM docker.io/library/python:3.10-slim
 
 # FFmpeg kurulumunu en hafif ve kararlı hale getiriyoruz
 RUN apt-get update && apt-get install -y --no-install-recommends \
