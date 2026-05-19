@@ -10,7 +10,6 @@ app = FastAPI(
     version="2.0"
 )
 
-# Tarayıcı güvenliği (CORS) ayarları
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -19,32 +18,45 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# --- BAŞLANGIÇ: KENDİ ÖZEL API ROUTER VE KODLARINIZI BURAYA EKLEYEBİLİRSİNİZ ---
-
+# --- API ROUTER VE KODLARINIZ BURAYA EKLEYEBİLİRSİNİZ ---
 @app.get("/api/v1/status")
 def get_status():
     return {"status": "ok", "message": "Backend servisleri 3012 portu üzerinden çalışıyor."}
 
-# --- BİTİŞ: KENDİ ÖZEL API ROUTER VE KODLARINIZI BURAYA EKLEYEBİLİRSİNİZ ---
 
+# --- FRONTEND ENTEGRASYON KATMANI (GARANTİLİ DİZİN KONTROLÜ) ---
+# Docker içindeki mutlak yolları (Absolute Path) kontrol ediyoruz
+possible_paths = [
+    os.path.abspath("/app/frontend/build"),
+    os.path.abspath("../frontend/build"),
+    os.path.abspath("./frontend/build")
+]
 
-# Frontend (React) Statik Dosyalarını Sunma Katmanı
-frontend_dist_path = os.path.abspath("../frontend/dist")
+frontend_build_path = None
+for path in possible_paths:
+    if os.path.exists(path) and os.path.exists(os.path.join(path, "index.html")):
+        frontend_build_path = path
+        break
 
-if os.path.exists(frontend_dist_path):
-    # CSS, JS gibi statik dosyaları dışarı aç
-    app.mount("/assets", StaticFiles(directory=os.path.join(frontend_dist_path, "assets")), name="assets")
+if frontend_build_path:
+    # Statik klasör tanımlaması (css, js, media dosyaları için)
+    static_dir = os.path.join(frontend_build_path, "static")
+    if os.path.exists(static_dir):
+        app.mount("/static", StaticFiles(directory=static_dir), name="static")
     
-    # Herhangi bir alt sayfaya gidildiğinde doğrudan React index.html dosyasını yükle
+    # Geri kalan tüm istekleri React Router'ın karşılaması için index.html'e yönlendir
     @app.get("/{catchall:path}")
     async def serve_frontend(catchall: str):
-        return FileResponse(os.path.join(frontend_dist_path, "index.html"))
+        return FileResponse(os.path.join(frontend_build_path, "index.html"))
 else:
     @app.get("/")
     def fallback_root():
-        return {"error": "Frontend derleme dosyaları (dist) bulunamadı. Lütfen Dockerfile aşamalarını kontrol edin."}
+        return {
+            "status": "Backend Çalışıyor",
+            "error": "Frontend build klasörü veya index.html bulunamadı.",
+            "tar can yollari": possible_paths
+        }
 
 
-# Sunucuyu kesin olarak 3012 portundan başlatan tetikleyici
 if __name__ == "__main__":
     uvicorn.run("main:app", host="0.0.0.0", port=3012, reload=False)
