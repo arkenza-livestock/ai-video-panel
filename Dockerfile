@@ -5,7 +5,7 @@ WORKDIR /app/frontend
 # package-lock.json olmasa bile hata vermemesi için package*.json olarak kopyalıyoruz
 COPY frontend/package*.json ./
 
-# npm ci yerine package-lock aramayan düz npm install kullanıyoruz
+# Hızlı ve hafif kurulum için düz npm install kullanıyoruz
 RUN npm install --quiet
 
 COPY frontend/ ./
@@ -14,7 +14,7 @@ RUN npm run build
 # 2. Aşama: Backend ve Hafifletilmiş Çalışma Ortamı
 FROM docker.io/library/python:3.10-slim
 
-# FFmpeg kurulumunu en hafif ve kararlı hale getiriyoruz
+# FFmpeg ve sistem kütüphanelerini en hafif modda kuruyoruz (Kilitlenmeyi önler)
 RUN apt-get update && apt-get install -y --no-install-recommends \
     ffmpeg \
     libsm6 \
@@ -23,17 +23,18 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 WORKDIR /app
 
-# Python gereksinimlerini yükle
+# Python bağımlılıklarını yükle
 COPY backend/requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Proje dosyalarını aktar
+# Tüm proje dosyalarını aktar
 COPY . .
 
-# Derlenen frontend dosyalarını entegre et
+# Derlenen frontend çıktılarını entegre et
 COPY --from=frontend-builder /app/frontend/dist ./frontend/dist
 
 WORKDIR /app/backend
+# Sistemi tamamen 3012 portuna sabitliyoruz
 EXPOSE 3012
 
 CMD ["python", "main.py"]
