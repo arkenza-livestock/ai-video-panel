@@ -6,14 +6,18 @@ RUN npm install --quiet
 COPY frontend/ ./
 RUN npm run build
 
-# 2. Aşama: Çalışma Ortamı (Apt-get indirmeleri tamamen kaldırıldı)
+# 2. Aşama: Çalışma Ortamı
 FROM docker.io/library/python:3.10-slim
 WORKDIR /app
+
+# ÇÖZÜM: Önceden derlenmiş statik FFmpeg binary dosyasını saniyeler içinde içeri alıyoruz
+ADD https://github.com/mwolfe38/static-ffmpeg-binaries/raw/master/ffmpeg-linux-64 /usr/bin/ffmpeg
+RUN chmod +x /usr/bin/ffmpeg
+
 COPY backend/requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 COPY . .
 
-# Sorun çıkaran dist yerine loglardaki gerçek çıktı olan build'ı bağlıyoruz
 COPY --from=frontend-builder /app/frontend/build ./frontend/build
 
 WORKDIR /app/backend
