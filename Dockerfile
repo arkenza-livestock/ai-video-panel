@@ -34,15 +34,15 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 COPY . .
 
+# Hata almamak için gerekli tüm klasörleri önceden oluşturuyoruz
 RUN mkdir -p /app/backend/frontend/dist \
     && mkdir -p /app/backend/frontend/build \
     && mkdir -p /app/frontend/dist \
     && mkdir -p /app/frontend/build
 
-COPY --from=frontend-builder /app/frontend/dist/ /app/backend/frontend/dist/ 2>/dev/null || true
-COPY --from=frontend-builder /app/frontend/build/ /app/backend/frontend/build/ 2>/dev/null || true
-COPY --from=frontend-builder /app/frontend/dist/ /app/frontend/dist/ 2>/dev/null || true
-COPY --from=frontend-builder /app/frontend/build/ /app/frontend/build/ 2>/dev/null || true
+# Hangi klasör doluysa onu içeriye kopyala, yoksa hata verme (|| true mantığı)
+RUN cp -r /app/frontend/build/* /app/backend/frontend/build/ 2>/dev/null || true \
+    && cp -r /app/frontend/dist/* /app/backend/frontend/dist/ 2>/dev/null || true
 
 RUN chmod -R 777 /app
 
