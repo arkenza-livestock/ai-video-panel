@@ -29,11 +29,12 @@ export const EditorProvider = ({ children }) => {
           setAudios(response.data.audios || []);
         }
       } catch (err) {
-        console.error("Editor Context hatası:", err);
+        console.error("Editor Context başlatılamadı:", err);
       } finally {
         setLoading(false);
       }
     };
+
     initEditor();
   }, [BACKEND_URL]);
 
@@ -44,10 +45,11 @@ export const EditorProvider = ({ children }) => {
       const response = await axios.post(`${BACKEND_URL}/api/export`, {
         tracks: timelineData || tracks
       });
+      
       if (response.data && response.data.downloadUrl) {
         alert("Video başarıyla oluşturuldu!");
       } else {
-        throw new Error("Geçersiz yanıt");
+        throw new Error("Geçersiz API yanıtı");
       }
     } catch (error) {
       console.error("Export Hatası:", error);
@@ -58,10 +60,15 @@ export const EditorProvider = ({ children }) => {
   };
 
   const value = {
-    videos, setVideos, audios, setAudios, tracks, setTracks,
-    selectedTrack, setSelectedTrack, isPlaying, setIsPlaying,
-    currentTime, setCurrentTime, duration, setDuration,
-    loading, exporting, exportVideo, BACKEND_URL
+    videos, setVideos,
+    audios, setAudios,
+    tracks, setTracks,
+    selectedTrack, setSelectedTrack,
+    isPlaying, setIsPlaying,
+    currentTime, setCurrentTime,
+    duration, setDuration,
+    loading, exporting, exportVideo,
+    BACKEND_URL
   };
 
   return (
@@ -74,7 +81,7 @@ export const EditorProvider = ({ children }) => {
 export const useEditor = () => {
   const context = useContext(EditorContext);
   if (context === undefined) {
-    throw new Error('useEditor bir EditorProvider içinde kullanılmalıdır');
+    throw new Error('useEditor mutlaka bir EditorProvider içinde kullanılmalıdır');
   }
   return context;
 };
