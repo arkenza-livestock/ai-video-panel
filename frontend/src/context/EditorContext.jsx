@@ -4,6 +4,7 @@ import axios from 'axios';
 export const EditorContext = createContext();
 
 export const EditorProvider = ({ children }) => {
+  // Ortam değişkenlerinden gelen API URL'ini seçer, yoksa tarayıcı IP'sini baz alır
   const BACKEND_URL = 
     import.meta.env?.VITE_API_URL || 
     process.env?.REACT_APP_API_URL || 
