@@ -15,7 +15,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# API Endpoint'lerin (Senin orijinal route tanımlamaların)
+# API Rotaları
 @app.get("/api/assets")
 async def get_assets():
     return {"videos": [], "audios": []}
@@ -26,33 +26,40 @@ async def export_video(data: dict):
 
 
 # ====================================================================
-# STATIC DOSYA VE ARAYÜZ YÖNLENDİRME YAPISI
+# STATİK DOSYALARI DOĞRUDAN SERVİS ETME ALANI
 # ====================================================================
 current_dir = os.path.dirname(os.path.abspath(__file__))
 static_dir = os.path.join(current_dir, "static")
 
-# Eğer klasör mevcutsa static assetleri mount et
-if os.path.exists(static_dir):
-    # Vite veya CRA tarafından üretilen assets/static klasörlerini bağla
-    if os.path.exists(os.path.join(static_dir, "assets")):
-        app.mount("/assets", StaticFiles(directory=os.path.join(static_dir, "assets")), name="assets")
-    if os.path.exists(os.path.join(static_dir, "static")):
-        app.mount("/static", StaticFiles(directory=os.path.join(static_dir, "static")), name="static")
+# Statik klasör yoksa bile çökmemesi için oluştur
+if not os.path.exists(static_dir):
+    os.makedirs(static_dir)
 
-# Tüm URL isteklerini karşılayan ve React arayüzünü açan Catch-All rotası
+# Vite ve CRA asset yollarını doğrudan mount et
+if os.path.exists(os.path.join(static_dir, "assets")):
+    app.mount("/assets", StaticFiles(directory=os.path.join(static_dir, "assets")), name="assets")
+if os.path.exists(os.path.join(static_dir, "static")):
+    app.mount("/static", StaticFiles(directory=os.path.join(static_dir, "static")), name="static")
+
+# Tüm tarayıcı isteklerini doğrudan index.html'e pasla
 @app.get("/{catchall:path}")
 async def serve_react(catchall: str):
-    # API çağrılarını pas geç
     if catchall.startswith("api/"):
         return None
     
-    # İstenen özel bir dosya (logo, resim vb.) static klasörde varsa onu dön
     specific_file = os.path.join(static_dir, catchall)
     if os.path.exists(specific_file) and os.path.isfile(specific_file):
         return FileResponse(specific_file)
         
-    # Geri kalan her şeyde ana React arayüzünü (index.html) ekrana bas
-    return FileResponse(os.path.join(static_dir, "index.html"))
+    # index.html dosyasını doğrudan fırlatıyoruz
+    index_path = os.path.join(static_dir, "index.html")
+    if os.path.exists(index_path):
+        return FileResponse(index_path)
+    
+    return {
+        "status": "API Aktif",
+        "message": "Statik arayüz dosyaları kopyalanamadı. Lütfen Docker build adımlarını inceleyin."
+    }
 
 if __name__ == "__main__":
     uvicorn.run("main:app", host="0.0.0.0", port=3012, reload=False)
