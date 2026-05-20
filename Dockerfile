@@ -7,7 +7,7 @@ WORKDIR /app/frontend
 # Bağımlılıkları kopyala
 COPY frontend/package*.json ./
 
-# HATA ÇÖZÜMÜ: Standart kuruluma ek olarak axios paketini el ile zorunlu yüklüyoruz
+# Axios paketini el ile zorunlu yüklüyoruz
 RUN npm install --quiet && npm install axios --quiet
 
 # Tüm kaynak kodları kopyala ve derle
@@ -25,11 +25,13 @@ FROM docker.io/mwader/static-ffmpeg:6.1.1 AS ffmpeg-source
 FROM docker.io/library/python:3.10-slim
 WORKDIR /app
 
-# Sistem bağımlılıklarını ve kütüphanelerini kur (Video işleme için gerekli)
+# Video işleme, OpenCV ve MoviePy için GEREKLİ TÜM sistem bağımlılıklarını kurun
 RUN apt-get update && apt-get install -y --no-install-recommends \
     libsm6 \
     libxext6 \
     libxrender-dev \
+    libglib2.0-0 \
+    libgl1-mesa-glx \
     && rm -rf /var/lib/apt/lists/*
 
 # FFmpeg ve FFprobe'u güvenli imajdan çek ve çalıştırılabilir yap
@@ -47,7 +49,7 @@ COPY . .
 # React'in ürettiği 'build' klasörünü backend'in erişebileceği yere kopyala
 COPY --from=frontend-builder /app/frontend/build ./frontend/build
 
-# İzinleri ayarla (Video kayıt ve export işlemleri için yazma izni)
+# Video kayıt, export ve geçici dosyalar için tam yazma izni tanımla
 RUN chmod -R 777 /app
 
 WORKDIR /app/backend
