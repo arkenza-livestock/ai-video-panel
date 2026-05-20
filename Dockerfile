@@ -22,11 +22,18 @@ FROM docker.io/mwader/static-ffmpeg:6.1.1 AS ffmpeg-source
 # ==========================================
 # 3. AŞAMA: ÇALIŞMA VE ÇIKTI ORTAMI (BACKEND)
 # ==========================================
-FROM docker.io/library/python:3.10-slim
+# HATA ÇÖZÜMÜ: Depo hatalarını engellemek için kararlı Debian Bookworm tabanına geçtik
+FROM docker.io/library/python:3.10-slim-bookworm
 WORKDIR /app
 
-# Coolify derleme hatasını önlemek için ters bölü kullanmadan düz satırda tüm kütüphaneleri kuruyoruz
-RUN apt-get update && apt-get install -y --no-install-recommends libsm6 libxext6 libxrender-dev libglib2.0-0 libgl1-mesa-glx && rm -rf /var/lib/apt/lists/*
+# Paket depolarını temizle, güncelle ve video işleme kütüphanelerini tek satırda güvenle kur
+RUN apt-get clean && apt-get update && apt-get install -y --no-install-recommends \
+    libsm6 \
+    libxext6 \
+    libxrender-dev \
+    libglib2.0-0 \
+    libgl1-mesa-glx \
+    && rm -rf /var/lib/apt/lists/*
 
 # FFmpeg ve FFprobe'u güvenli imajdan çek ve çalıştırılabilir yap
 COPY --from=ffmpeg-source /ffmpeg /usr/bin/ffmpeg
@@ -43,7 +50,7 @@ COPY . .
 # React'in ürettiği 'build' klasörünü backend'in erişebileceği yere kopyala
 COPY --from=frontend-builder /app/frontend/build ./frontend/build
 
-# Video kayıt ve render işlemleri için yazma izinlerini esnet
+# Video kayıt ve render işlemleri için yazma izinlerini ayarla
 RUN chmod -R 777 /app
 
 WORKDIR /app/backend
