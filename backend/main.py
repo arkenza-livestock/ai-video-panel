@@ -1,58 +1,51 @@
-# ==========================================
-# 1. AŞAMA: FRONTEND BUILD
-# ==========================================
-FROM docker.io/library/node:18-alpine AS frontend-builder
-WORKDIR /app/frontend
+import os
+import uvicorn
+from fastapi import FastAPI
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
+from fastapi.middleware.cors import CORSMiddleware
 
-COPY frontend/package*.json ./
-RUN npm install --quiet
+app = FastAPI(title="Atmosfer Studio API", version="1.0.0")
 
-ARG REACT_APP_API_URL
-ENV REACT_APP_API_URL=$REACT_APP_API_URL
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
-COPY frontend/ ./
-# Build alırken hatasız bittiğinden emin oluyoruz
-RUN npm run build
+# API Endpoint'lerin
+@app.get("/api/assets")
+async def get_assets():
+    return {"videos": [], "audios": []}
 
-# ==========================================
-# 2. AŞAMA: FFmpeg KAYNAĞI
-# ==========================================
-FROM docker.io/mwader/static-ffmpeg:6.1.1 AS ffmpeg-source
+@app.post("/api/export")
+async def export_video(data: dict):
+    return {"status": "success", "downloadUrl": "/static/output.mp4"}
 
-# ==========================================
-# 3. AŞAMA: BACKEND & ÇALIŞTIRMA ORTAMI
-# ==========================================
-FROM docker.io/library/python:3.10-slim-bookworm
-WORKDIR /app
 
-RUN apt-get clean && apt-get update && apt-get install -y --no-install-recommends \
-    libsm6 \
-    libxext6 \
-    libxrender-dev \
-    libglib2.0-0 \
-    libgl1-mesa-glx \
-    && rm -rf /var/lib/apt/lists/*
+# ====================================================================
+# SABİT STATIC KLASÖR BAĞLANTISI
+# ====================================================================
+current_dir = os.path.dirname(os.path.abspath(__file__))
+static_dir = os.path.join(current_dir, "static")
 
-COPY --from=ffmpeg-source /ffmpeg /usr/bin/ffmpeg
-COPY --from=ffmpeg-source /ffprobe /usr/bin/ffprobe
-RUN chmod +x /usr/bin/ffmpeg && chmod +x /usr/bin/ffprobe
+# Statik klasörün varlığını kontrol etmeden direkt mount ediyoruz
+if os.path.exists(static_dir):
+    app.mount("/static", StaticFiles(directory=static_dir), name="static")
 
-COPY backend/requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+# Tüm istekleri index.html'e yönlendir (Arayüzün açılması için)
+@app.get("/{catchall:path}")
+async def serve_react(catchall: str):
+    if catchall.startswith("api/"):
+        return None
+    
+    specific_file = os.path.join(static_dir, catchall)
+    if os.path.exists(specific_file) and os.path.isfile(specific_file):
+        return FileResponse(specific_file)
+        
+    return FileResponse(os.path.join(static_dir, "index.html"))
 
-# Tüm kaynak kodları içeri al
-COPY . .
-
-# Backend klasörünün içinde temiz bir static klasörü oluştur
-RUN rm -rf /app/backend/static && mkdir -p /app/backend/static
-
-# React build klasörünün içeriğini doğrudan backend/static altına kopyala
-# (Hata varsa Docker build aşamasında patlasın ki nerede durduğumuzu görelim)
-COPY --from=frontend-builder /app/frontend/build/ /app/backend/static/
-
-RUN chmod -R 777 /app
-
-WORKDIR /app/backend
-EXPOSE 3012
-
-CMD ["python", "main.py"]
+if __name__ == "__main__":
+    uvicorn.run("main:app", host="0.0.0.0", port=3012, reload=False)
