@@ -4,7 +4,6 @@ import axios from 'axios';
 export const EditorContext = createContext();
 
 export const EditorProvider = ({ children }) => {
-  // Ortam değişkenlerini veya mevcut tarayıcı IP/Domain bilgisini dinamik olarak seçer
   const BACKEND_URL = 
     import.meta.env?.VITE_API_URL || 
     process.env?.REACT_APP_API_URL || 
@@ -30,7 +29,7 @@ export const EditorProvider = ({ children }) => {
           setAudios(response.data.audios || []);
         }
       } catch (err) {
-        console.error("Editor başlatılamadı:", err);
+        console.error("Editor Context başlatılamadı:", err);
       } finally {
         setLoading(false);
       }
@@ -50,11 +49,11 @@ export const EditorProvider = ({ children }) => {
       if (response.data && response.data.downloadUrl) {
         alert("Video başarıyla oluşturuldu!");
       } else {
-        throw new Error("Geçersiz yanıt yapısı");
+        throw new Error("Geçersiz API yanıtı");
       }
     } catch (error) {
-      console.error("Dışa Aktarma Hatası:", error);
-      alert("Video oluşturma esnasında bir hata meydana geldi.");
+      console.error("Export Hatası:", error);
+      alert("Video dönüştürme (Export) sırasında bir hata oluştu.");
     } finally {
       setExporting(false);
     }
@@ -82,7 +81,7 @@ export const EditorProvider = ({ children }) => {
 export const useEditor = () => {
   const context = useContext(EditorContext);
   if (context === undefined) {
-    throw new Error('useEditor bir EditorProvider bloğu içinde çağrılmalıdır.');
+    throw new Error('useEditor mutlaka bir EditorProvider içinde kullanılmalıdır');
   }
   return context;
 };
