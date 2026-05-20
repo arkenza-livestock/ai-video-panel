@@ -2,7 +2,10 @@
 FROM docker.io/library/node:18-alpine AS frontend-builder
 WORKDIR /app/frontend
 COPY frontend/package*.json ./
-RUN npm install --quiet
+
+# HATA ÇÖZÜMÜ: Eksik olan axios paketini el ile zorunlu olarak kuruyoruz
+RUN npm install --quiet && npm install axios --quiet
+
 COPY frontend/ ./
 RUN npm run build
 
@@ -13,21 +16,15 @@ FROM docker.io/mwader/static-ffmpeg:6.1.1 AS ffmpeg-source
 FROM docker.io/library/python:3.10-slim
 WORKDIR /app
 
-# FFmpeg ve FFprobe'u içeri aktar
 COPY --from=ffmpeg-source /ffmpeg /usr/bin/ffmpeg
 COPY --from=ffmpeg-source /ffprobe /usr/bin/ffprobe
-
-# Çalıştırılabilirlik izinlerini garantiye al
 RUN chmod +x /usr/bin/ffmpeg && chmod +x /usr/bin/ffprobe
 
 COPY backend/requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 COPY . .
 
-# Derlenen frontend dosyalarını entegre et
 COPY --from=frontend-builder /app/frontend/build ./frontend/build
-
-# Klasör yazma yetki sorunlarını çözmek için izin ver
 RUN chmod -R 777 /app
 
 WORKDIR /app/backend
