@@ -1,5 +1,5 @@
 # ==========================================
-# 1. AŞAMA: FRONTEND BUILD
+# 1. AŞAMA: FRONTEND BUILD (Vite / React)
 # ==========================================
 FROM docker.io/library/node:18-alpine AS frontend-builder
 WORKDIR /app/frontend
@@ -9,9 +9,10 @@ RUN npm install --quiet
 
 ARG REACT_APP_API_URL
 ENV REACT_APP_API_URL=$REACT_APP_API_URL
+ARG VITE_API_URL
+ENV VITE_API_URL=$VITE_API_URL
 
 COPY frontend/ ./
-# Build alırken hatasız bittiğinden emin oluyoruz
 RUN npm run build
 
 # ==========================================
@@ -40,15 +41,19 @@ RUN chmod +x /usr/bin/ffmpeg && chmod +x /usr/bin/ffprobe
 COPY backend/requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Tüm kaynak kodları içeri al
+# Önce backend kaynak kodlarını kopyala
+COPY backend/ ./backend
+
+# Temiz bir static klasörü oluştur
+RUN mkdir -p /app/backend/static
+
+# Frontend builder aşamasından çıkan tüm olası klasör içeriklerini güvenle static altına taşı
+COPY --from=frontend-builder /app/frontend/dist/ /app/backend/static/
+# Eğer proje eski ayarlardan dolayı build klasörüne çıktı üretirse üstüne yazması için:
+COPY --from=frontend-builder /app/frontend/build/ /app/backend/static/ 2>/dev/null || true
+
+# Kalan tüm proje dosyalarını kopyala
 COPY . .
-
-# Backend klasörünün içinde temiz bir static klasörü oluştur
-RUN rm -rf /app/backend/static && mkdir -p /app/backend/static
-
-# React build klasörünün içeriğini doğrudan backend/static altına kopyala
-# (Hata varsa Docker build aşamasında patlasın ki nerede durduğumuzu görelim)
-COPY --from=frontend-builder /app/frontend/build/ /app/backend/static/
 
 RUN chmod -R 777 /app
 
