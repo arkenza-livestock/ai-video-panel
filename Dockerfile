@@ -25,14 +25,8 @@ FROM docker.io/mwader/static-ffmpeg:6.1.1 AS ffmpeg-source
 FROM docker.io/library/python:3.10-slim
 WORKDIR /app
 
-# Video işleme, OpenCV ve MoviePy için GEREKLİ TÜM sistem bağımlılıklarını kurun
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    libsm6 \
-    libxext6 \
-    libxrender-dev \
-    libglib2.0-0 \
-    libgl1-mesa-glx \
-    && rm -rf /var/lib/apt/lists/*
+# Coolify derleme hatasını önlemek için ters bölü kullanmadan düz satırda tüm kütüphaneleri kuruyoruz
+RUN apt-get update && apt-get install -y --no-install-recommends libsm6 libxext6 libxrender-dev libglib2.0-0 libgl1-mesa-glx && rm -rf /var/lib/apt/lists/*
 
 # FFmpeg ve FFprobe'u güvenli imajdan çek ve çalıştırılabilir yap
 COPY --from=ffmpeg-source /ffmpeg /usr/bin/ffmpeg
@@ -49,7 +43,7 @@ COPY . .
 # React'in ürettiği 'build' klasörünü backend'in erişebileceği yere kopyala
 COPY --from=frontend-builder /app/frontend/build ./frontend/build
 
-# Video kayıt, export ve geçici dosyalar için tam yazma izni tanımla
+# Video kayıt ve render işlemleri için yazma izinlerini esnet
 RUN chmod -R 777 /app
 
 WORKDIR /app/backend
