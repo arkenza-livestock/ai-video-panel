@@ -1,67 +1,105 @@
-# ==========================================
-# 1. AŞAMA: FRONTEND (REACT) DERLEME
-# ==========================================
-FROM docker.io/library/node:18-alpine AS frontend-builder
-WORKDIR /app/frontend
+import React, { createContext, useState, useEffect, useContext } from 'react';
+import axios from 'axios';
 
-# Bağımlılıkları kopyala
-COPY frontend/package*.json ./
+export const EditorContext = createContext();
 
-# Axios ve gerekli paketleri el ile zorunlu yüklüyoruz
-RUN npm install --quiet && npm install axios --quiet
+export const EditorProvider = ({ children }) => {
+  // .env dosyasından gelen URL'i hem Vite hem CRA için güvenli şekilde oku
+  const BACKEND_URL = 
+    import.meta.env?.VITE_API_URL || 
+    process.env?.REACT_APP_API_URL || 
+    `${window.location.protocol}//${window.location.hostname}:3012`;
 
-# CRİTİCAL HATA ÇÖZÜMÜ: Coolify üzerindeki .env değişkenlerini derleme anına aktarıyoruz
-# Eğer kodunuzda süreç "process.env.REACT_APP_..." şeklinde okunuyorsa alttaki satırları açın:
-ARG REACT_APP_API_URL
-ENV REACT_APP_API_URL=$REACT_APP_API_URL
+  // State tanımlamaları (Çökmeyi önlemek için varsayılan boş array/obje)
+  const [videos, setVideos] = useState([]);
+  const [audios, setAudios] = useState([]);
+  const [tracks, setTracks] = useState([]);
+  const [selectedTrack, setSelectedTrack] = useState(null);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [currentTime, setCurrentTime] = useState(0);
+  const [duration, setDuration] = useState(0);
+  const [loading, setLoading] = useState(false);
+  const [exporting, setExporting] = useState(false);
 
-# Eğer Vite kullanıyorsanız alttaki satırları açın:
-ARG VITE_API_URL
-ENV VITE_API_URL=$VITE_API_URL
+  // API bağlantısını test eden ve ilk verileri çeken güvenli fonksiyon
+  useEffect(() => {
+    const initEditor = async () => {
+      try {
+        setLoading(true);
+        // Backend'e hafif bir istek atıp ayakta mı kontrol ediyoruz
+        const response = await axios.get(`${BACKEND_URL}/api/assets`).catch(() => ({ data: { videos: [], audios: [] } }));
+        
+        if (response.data) {
+          setVideos(response.data.videos || []);
+          setAudios(response.data.audios || []);
+        }
+      } catch (err) {
+        console.error("Editor Context başlatılamadı, yerel modda çalışıyor:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
 
-# Tüm kaynak kodları kopyala ve derle
-COPY frontend/ ./
-RUN npm run build
+    initEditor();
+  }, [BACKEND_URL]);
 
-# ==========================================
-# 2. AŞAMA: RESMİ STATİK FFMPEG İMAJI
-# ==========================================
-FROM docker.io/mwader/static-ffmpeg:6.1.1 AS ffmpeg-source
+  // Video Export (Dışa Aktarma) Fonksiyonu
+  const exportVideo = async (timelineData) => {
+    if (exporting) return;
+    try {
+      setExporting(true);
+      const response = await axios.post(`${BACKEND_URL}/api/export`, {
+        tracks: timelineData || tracks
+      });
+      
+      if (response.data && response.data.downloadUrl) {
+        alert("Video başarıyla oluşturuldu!");
+        // İndirme işlemini başlat veya state'e kaydet
+      } else {
+        throw new Error("Geçersiz API yanıtı");
+      }
+    } catch (error) {
+      console.error("Export Hatası:", error);
+      alert("Video dönüştürme (Export) sırasında bir hata oluştu.");
+    } finally {
+      setExporting(false);
+    }
+  };
 
-# ==========================================
-# 3. AŞAMA: ÇALIŞMA VE ÇIKTI ORTAMI (BACKEND)
-# ==========================================
-FROM docker.io/library/python:3.10-slim-bookworm
-WORKDIR /app
+  // Context içinden dışarıya aktarılan güvenli yapılar
+  const value = {
+    videos,
+    setVideos,
+    audios,
+    setAudios,
+    tracks,
+    setTracks,
+    selectedTrack,
+    setSelectedTrack,
+    isPlaying,
+    setIsPlaying,
+    currentTime,
+    setCurrentTime,
+    duration,
+    setDuration,
+    loading,
+    exporting,
+    exportVideo,
+    BACKEND_URL
+  };
 
-# Paket depolarını temizle, güncelle ve video işleme kütüphanelerini tek satırda güvenle kur
-RUN apt-get clean && apt-get update && apt-get install -y --no-install-recommends \
-    libsm6 \
-    libxext6 \
-    libxrender-dev \
-    libglib2.0-0 \
-    libgl1-mesa-glx \
-    && rm -rf /var/lib/apt/lists/*
+  return (
+    <EditorContext.Provider value={value}>
+      {children}
+    </EditorContext.Provider>
+  );
+};
 
-# FFmpeg ve FFprobe'u güvenli imajdan çek ve çalıştırılabilir yap
-COPY --from=ffmpeg-source /ffmpeg /usr/bin/ffmpeg
-COPY --from=ffmpeg-source /ffprobe /usr/bin/ffprobe
-RUN chmod +x /usr/bin/ffmpeg && chmod +x /usr/bin/ffprobe
-
-# Python gereksinimlerini yükle
-COPY backend/requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
-
-# Tüm backend projesini kopyala
-COPY . .
-
-# React'in ürettiği 'build' klasörünü backend'in erişebileceği yere kopyala
-COPY --from=frontend-builder /app/frontend/build ./frontend/build
-
-# Video kayıt ve render işlemleri için yazma izinlerini ayarla
-RUN chmod -R 777 /app
-
-WORKDIR /app/backend
-EXPOSE 3012
-
-CMD ["python", "main.py"]
+// Kolay kullanım için Custom Hook (Export hatası vermemesi için en altta temiz tanımlama)
+export const useEditor = () => {
+  const context = useContext(EditorContext);
+  if (context === undefined) {
+    throw new Error('useEditor mutlaka an EditorProvider içinde kullanılmalıdır');
+  }
+  return context;
+};
