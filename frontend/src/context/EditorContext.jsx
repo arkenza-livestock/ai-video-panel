@@ -4,6 +4,7 @@ import axios from 'axios';
 export const EditorContext = createContext();
 
 export const EditorProvider = ({ children }) => {
+  // Dinamik URL tespiti: Coolify üzerinde port veya env ne olursa olsun patlamaz
   const BACKEND_URL = 
     import.meta.env?.VITE_API_URL || 
     process.env?.REACT_APP_API_URL || 
@@ -19,60 +20,56 @@ export const EditorProvider = ({ children }) => {
   const [loading, setLoading] = useState(false);
   const [exporting, setExporting] = useState(false);
 
+  // İlk açılışta yüklenen medyaları API'den çek
   useEffect(() => {
-    const initEditor = async () => {
+    const fetchAssets = async () => {
       try {
         setLoading(true);
-        const response = await axios.get(`${BACKEND_URL}/api/assets`).catch(() => ({ data: { videos: [], audios: [] } }));
-        if (response.data) {
-          setVideos(response.data.videos || []);
-          setAudios(response.data.audios || []);
+        const res = await axios.get(`${BACKEND_URL}/api/assets`);
+        if (res.data) {
+          setVideos(res.data.videos || []);
+          setAudios(res.data.audios || []);
         }
       } catch (err) {
-        console.error("Editor Context başlatılamadı:", err);
+        console.error("Medyalar sunucudan yüklenemedi:", err);
       } finally {
         setLoading(false);
       }
     };
-
-    initEditor();
+    fetchAssets();
   }, [BACKEND_URL]);
 
-  const exportVideo = async (timelineData) => {
+  // Videoyu birleştirip render etme tetikleyicisi
+  const exportVideo = async (timelineTracks) => {
     if (exporting) return;
     try {
       setExporting(true);
-      const response = await axios.post(`${BACKEND_URL}/api/export`, {
-        tracks: timelineData || tracks
+      const res = await axios.post(`${BACKEND_URL}/api/export`, {
+        tracks: timelineTracks || tracks
       });
-      
-      if (response.data && response.data.downloadUrl) {
-        alert("Video başarıyla oluşturuldu!");
-      } else {
-        throw new Error("Geçersiz API yanıtı");
+      if (res.data && res.data.downloadUrl) {
+        alert("Video başarıyla oluşturuldu! İndirme linki hazır.");
       }
-    } catch (error) {
-      console.error("Export Hatası:", error);
-      alert("Video dönüştürme (Export) sırasında bir hata oluştu.");
+    } catch (err) {
+      console.error("Render hatası:", err);
+      alert("Video işlenirken sunucu tarafında bir hata oluştu.");
     } finally {
       setExporting(false);
     }
   };
 
-  const value = {
-    videos, setVideos,
-    audios, setAudios,
-    tracks, setTracks,
-    selectedTrack, setSelectedTrack,
-    isPlaying, setIsPlaying,
-    currentTime, setCurrentTime,
-    duration, setDuration,
-    loading, exporting, exportVideo,
-    BACKEND_URL
-  };
-
   return (
-    <EditorContext.Provider value={value}>
+    <EditorContext.Provider value={{
+      videos, setVideos,
+      audios, setAudios,
+      tracks, setTracks,
+      selectedTrack, setSelectedTrack,
+      isPlaying, setIsPlaying,
+      currentTime, setCurrentTime,
+      duration, setDuration,
+      loading, exporting, exportVideo,
+      BACKEND_URL
+    }}>
       {children}
     </EditorContext.Provider>
   );
@@ -80,8 +77,8 @@ export const EditorProvider = ({ children }) => {
 
 export const useEditor = () => {
   const context = useContext(EditorContext);
-  if (context === undefined) {
-    throw new Error('useEditor mutlaka bir EditorProvider içinde kullanılmalıdır');
+  if (!context) {
+    throw new Error('useEditor bileşeni EditorProvider bloğu dışarısında kullanılamaz.');
   }
   return context;
 };
