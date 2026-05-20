@@ -1,5 +1,5 @@
 # ==========================================
-# 1. AŞAMA: FRONTEND BUILD (Vite / React)
+# 1. AŞAMA: FRONTEND BUILD
 # ==========================================
 FROM docker.io/library/node:18-alpine AS frontend-builder
 WORKDIR /app/frontend
@@ -15,13 +15,19 @@ ENV VITE_API_URL=$VITE_API_URL
 COPY frontend/ ./
 RUN npm run build
 
+# Klasör isminden bağımsız olarak ne üretildiyse garantilemek için geçici bir alana topluyoruz
+RUN mkdir -p /app/frontend_out \
+    && cp -r /app/frontend/dist/* /app/frontend_out/ 2>/dev/null || true \
+    && cp -r /app/frontend/build/* /app/frontend_out/ 2>/dev/null || true \
+    && cp -r /app/frontend/out/* /app/frontend_out/ 2>/dev/null || true
+
 # ==========================================
-# 2. AŞAMA: FFmpeg KAYNAĞI
+# 2. AŞAMA: FFmpeg BAĞIMLILIĞI
 # ==========================================
 FROM docker.io/mwader/static-ffmpeg:6.1.1 AS ffmpeg-source
 
 # ==========================================
-# 3. AŞAMA: BACKEND & ÇALIŞTIRMA ORTAMI
+# 3. AŞAMA: PYTHON BACKEND & RUNTIME
 # ==========================================
 FROM docker.io/library/python:3.10-slim-bookworm
 WORKDIR /app
@@ -41,19 +47,14 @@ RUN chmod +x /usr/bin/ffmpeg && chmod +x /usr/bin/ffprobe
 COPY backend/requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Önce backend kaynak kodlarını kopyala
-COPY backend/ ./backend
-
-# Temiz bir static klasörü oluştur
-RUN mkdir -p /app/backend/static
-
-# Frontend builder aşamasından çıkan tüm olası klasör içeriklerini güvenle static altına taşı
-COPY --from=frontend-builder /app/frontend/dist/ /app/backend/static/
-# Eğer proje eski ayarlardan dolayı build klasörüne çıktı üretirse üstüne yazması için:
-COPY --from=frontend-builder /app/frontend/build/ /app/backend/static/ 2>/dev/null || true
-
-# Kalan tüm proje dosyalarını kopyala
+# Önce tüm proje dosyalarını kopyala
 COPY . .
+
+# Backend içinde temiz bir static klasörü oluştur
+RUN rm -rf /app/backend/static && mkdir -p /app/backend/static
+
+# Geçici alana topladığımız frontend çıktılarını backend'in içine güvenle aktar
+COPY --from=frontend-builder /app/frontend_out/ /app/backend/static/
 
 RUN chmod -R 777 /app
 
