@@ -15,7 +15,7 @@ function App() {
 
   const [uploading, setUploading] = useState(false);
 
-  // Dosya Yükleme Fonksiyonu (Video/Ses)
+  // Dosya Yükleme Fonksiyonu
   const handleFileUpload = async (e, type) => {
     const file = e.target.files[0];
     if (!file) return;
@@ -60,7 +60,7 @@ function App() {
   return (
     <div style={{ width: '100vw', height: '100vh', backgroundColor: '#141414', color: '#ffffff', fontFamily: 'sans-serif', margin: 0, padding: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
       
-      {/* Üst Menü / Header */}
+      {/* Üst Header */}
       <header style={{ height: '60px', borderBottom: '1px solid #282828', display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0 20px', backgroundColor: '#1a1a1a' }}>
         <h2 style={{ margin: 0, fontSize: '18px', color: '#00adb5' }}>Atmosfer Video Stüdyo</h2>
         <button 
@@ -72,10 +72,10 @@ function App() {
         </button>
       </header>
 
-      {/* Ana Çalışma Alanı */}
+      {/* Çalışma Alanı */}
       <main style={{ flex: 1, display: 'flex', height: 'calc(100vh - 260px)', backgroundColor: '#181818' }}>
         
-        {/* Sol Panel: Medya Yükleme ve Listeleme */}
+        {/* Sol Panel: Medya Yükleme */}
         <section style={{ width: '320px', borderRight: '1px solid #282828', display: 'flex', flexDirection: 'column', backgroundColor: '#1a1a1a' }}>
           <div style={{ padding: '15px', borderBottom: '1px solid #282828' }}>
             <h3 style={{ margin: '0 0 10px 0', fontSize: '14px' }}>Medya Yükle</h3>
@@ -89,10 +89,10 @@ function App() {
                 <input type="file" accept="audio/*" onChange={(e) => handleFileUpload(e, 'audio')} style={{ display: 'none' }} />
               </label>
             </div>
-            {uploading && <p style={{ fontSize: '12px', color: '#00adb5', margin: '5px 0 0 0' }}>Dosya yükleniyor, lütfen bekleyin...</p>}
+            {uploading && <p style={{ fontSize: '12px', color: '#00adb5', margin: '5px 0 0 0' }}>Dosya yükleniyor...</p>}
           </div>
 
-          {/* Yüklenen Videolar */}
+          {/* Listeler */}
           <div style={{ flex: 1, padding: '15px', overflowY: 'auto' }}>
             <h4 style={{ margin: '0 0 10px 0', fontSize: '13px', color: '#aaa' }}>Videolarım</h4>
             {loading ? <p style={{ fontSize: '12px' }}>Yükleniyor...</p> : (
@@ -105,7 +105,6 @@ function App() {
               </div>
             )}
 
-            {/* Yüklenen Sesler */}
             <h4 style={{ margin: '20px 0 10px 0', fontSize: '13px', color: '#aaa' }}>Seslerim</h4>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
               {audios.map((aud, idx) => (
@@ -117,13 +116,13 @@ function App() {
           </div>
         </section>
 
-        {/* Sağ Panel: Video Önizleme (Preview Video Player) */}
+        {/* Sağ Panel: Video Önizleme */}
         <section style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', padding: '20px' }}>
           <div style={{ width: '100%', maxWidth: '640px', aspectRatio: '16/9', backgroundColor: '#000', borderRadius: '8px', display: 'flex', justifyContent: 'center', alignItems: 'center', position: 'relative', border: '1px solid #282828' }}>
             {tracks.filter(t => t.type === 'video').length > 0 ? (
               <p style={{ color: '#00adb5' }}>Video Önizleme Aktif (Zaman: {currentTime.toFixed(2)}s / {duration.toFixed(2)}s)</p>
             ) : (
-              <p style={{ color: '#666', fontSize: '14px' }}>Önizlemek için zaman çizelgesine video ekleyin.</p>
+              <p style={{ color: '#666', fontSize: '14px' }}>Zaman çizelgesine video ekleyerek başlayın.</p>
             )}
           </div>
 
@@ -147,12 +146,12 @@ function App() {
         </section>
       </main>
 
-      {/* Alt Panel: Zaman Çizelgesi (Timeline Area) */}
+      {/* Alt Panel: Zaman Çizelgesi */}
       <footer style={{ height: '200px', borderTop: '1px solid #282828', backgroundColor: '#1a1a1a', padding: '15px', overflowY: 'auto' }}>
         <h3 style={{ margin: '0 0 10px 0', fontSize: '14px', color: '#aaa' }}>Zaman Çizelgesi (Timeline)</h3>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', backgroundColor: '#111', padding: '10px', borderRadius: '6px', minHeight: '100px' }}>
           {tracks.length === 0 ? (
-            <p style={{ color: '#444', fontSize: '12px', textAlign: 'center', marginTop: '35px' }}>Çizelgede henüz bir medya öğesi yok. Eklemek için soldaki videolara tıklayın.</p>
+            <p style={{ color: '#444', fontSize: '12px', textAlign: 'center', marginTop: '35px' }}>Çizelgede medya öğesi yok. Eklemek için soldaki ögelere tıklayın.</p>
           ) : (
             tracks.map((track) => (
               <div key={track.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '6px 12px', backgroundColor: track.type === 'video' ? '#1c3d42' : '#2d372d', borderRadius: '4px', fontSize: '12px', borderLeft: `4px solid ${track.type === 'video' ? '#00adb5' : '#4caf50'}` }}>
