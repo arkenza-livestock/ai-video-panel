@@ -1,62 +1,80 @@
-import React, { createContext, useState, useEffect } from 'react';
+import React, { createContext, useState, useEffect, useContext } from 'react';
+import axios from 'axios';
 
 export const EditorContext = createContext();
 
 export const EditorProvider = ({ children }) => {
-    const [project, setProject] = useState(null);
-    const [loading, setLoading] = useState(false);
-    const [apiStatus, setApiStatus] = useState("API Hazırlanıyor...");
+  const BACKEND_URL = 
+    import.meta.env?.VITE_API_URL || 
+    process.env?.REACT_APP_API_URL || 
+    `${window.location.protocol}//${window.location.hostname}:3012`;
 
-    // URL Tanımını Canlı IP ve 3012 Portuna Kesin Olarak Sabitliyoruz
-    const API_URL = "http://72.62.186.96:3012";
+  const [videos, setVideos] = useState([]);
+  const [audios, setAudios] = useState([]);
+  const [tracks, setTracks] = useState([]);
+  const [selectedTrack, setSelectedTrack] = useState(null);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [currentTime, setCurrentTime] = useState(0);
+  const [duration, setDuration] = useState(0);
+  const [loading, setLoading] = useState(false);
+  const [exporting, setExporting] = useState(false);
 
-    useEffect(() => {
-        // Backend durumunu kontrol eden tetikleyici
-        fetch(`${API_URL}/api/v1/status`)
-            .then((res) => {
-                if (res.ok) return res.json();
-                throw new Error("Backend yanıt vermedi");
-            })
-            .then((data) => {
-                setApiStatus("Hazır");
-                console.log("Backend Bağlantısı Başarılı:", data.message);
-            })
-            .catch((err) => {
-                setApiStatus("Bağlantı Hatası");
-                console.error("API Bağlantı Hatası:", err);
-            });
-    }, []);
-
-    // Video Dönüştürme (Export) Fonksiyonunun Tam ve Birleşik Hali
-    const exportVideo = async (timelineData) => {
+  useEffect(() => {
+    const initEditor = async () => {
+      try {
         setLoading(true);
-        try {
-            const response = await fetch(`${API_URL}/api/v1/export`, {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                },
-                body: JSON.stringify({ timeline: timelineData }),
-            });
-
-            if (!response.ok) {
-                throw new Error("Export işlemi backend tarafında başarısız oldu.");
-            }
-
-            const result = await response.json();
-            alert("Video dönüştürme başarıyla tamamlandı!");
-            return result;
-        } catch (error) {
-            console.error("Export Hatası:", error);
-            alert("Video dönüştürme (Export) sırasında bir hata oluştu.");
-        } finally {
-            setLoading(false);
+        const response = await axios.get(`${BACKEND_URL}/api/assets`).catch(() => ({ data: { videos: [], audios: [] } }));
+        if (response.data) {
+          setVideos(response.data.videos || []);
+          setAudios(response.data.audios || []);
         }
+      } catch (err) {
+        console.error("Editor Context hatası:", err);
+      } finally {
+        setLoading(false);
+      }
     };
+    initEditor();
+  }, [BACKEND_URL]);
 
-    return (
-        <EditorContext.Provider value={{ project, setProject, loading, apiStatus, exportVideo }}>
-            {children}
-        </EditorContext.Provider>
-    );
+  const exportVideo = async (timelineData) => {
+    if (exporting) return;
+    try {
+      setExporting(true);
+      const response = await axios.post(`${BACKEND_URL}/api/export`, {
+        tracks: timelineData || tracks
+      });
+      if (response.data && response.data.downloadUrl) {
+        alert("Video başarıyla oluşturuldu!");
+      } else {
+        throw new Error("Geçersiz yanıt");
+      }
+    } catch (error) {
+      console.error("Export Hatası:", error);
+      alert("Video dönüştürme (Export) sırasında bir hata oluştu.");
+    } finally {
+      setExporting(false);
+    }
+  };
+
+  const value = {
+    videos, setVideos, audios, setAudios, tracks, setTracks,
+    selectedTrack, setSelectedTrack, isPlaying, setIsPlaying,
+    currentTime, setCurrentTime, duration, setDuration,
+    loading, exporting, exportVideo, BACKEND_URL
+  };
+
+  return (
+    <EditorContext.Provider value={value}>
+      {children}
+    </EditorContext.Provider>
+  );
+};
+
+export const useEditor = () => {
+  const context = useContext(EditorContext);
+  if (context === undefined) {
+    throw new Error('useEditor bir EditorProvider içinde kullanılmalıdır');
+  }
+  return context;
 };
