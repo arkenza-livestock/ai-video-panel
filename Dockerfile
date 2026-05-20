@@ -4,9 +4,11 @@
 FROM docker.io/library/node:18-alpine AS frontend-builder
 WORKDIR /app/frontend
 
-# Bağımlılıkları kopyala ve yükle
+# Bağımlılıkları kopyala
 COPY frontend/package*.json ./
-RUN npm install --quiet
+
+# HATA ÇÖZÜMÜ: Standart kuruluma ek olarak axios paketini el ile zorunlu yüklüyoruz
+RUN npm install --quiet && npm install axios --quiet
 
 # Tüm kaynak kodları kopyala ve derle
 COPY frontend/ ./
@@ -42,11 +44,10 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Tüm backend projesini kopyala
 COPY . .
 
-# HATA ÇÖZÜMÜ: React'in ürettiği 'build' klasörünü backend'in beklediği 'frontend/dist' veya 'build' rotasına bağla
-# Eğer backend kodun 'build' klasörünü arıyorsa aşağıdaki satır işi çözecektir:
+# React'in ürettiği 'build' klasörünü backend'in erişebileceği yere kopyala
 COPY --from=frontend-builder /app/frontend/build ./frontend/build
 
-# İzinleri ayarla (Video kayıt işlemleri için yazma izni)
+# İzinleri ayarla (Video kayıt ve export işlemleri için yazma izni)
 RUN chmod -R 777 /app
 
 WORKDIR /app/backend
