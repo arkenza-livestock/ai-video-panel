@@ -11,6 +11,7 @@ ARG REACT_APP_API_URL
 ENV REACT_APP_API_URL=$REACT_APP_API_URL
 
 COPY frontend/ ./
+# Build alırken hatasız bittiğinden emin oluyoruz
 RUN npm run build
 
 # ==========================================
@@ -39,14 +40,15 @@ RUN chmod +x /usr/bin/ffmpeg && chmod +x /usr/bin/ffprobe
 COPY backend/requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
+# Tüm kaynak kodları içeri al
 COPY . .
 
-# Backend içinde temiz bir static klasörü oluşturuyoruz
+# Backend klasörünün içinde temiz bir static klasörü oluştur
 RUN rm -rf /app/backend/static && mkdir -p /app/backend/static
 
-# React çıktısı hangisiyse (build veya dist) doğrudan backend/static içine kopyala
-RUN cp -r /app/frontend/build/* /app/backend/static/ 2>/dev/null || true \
-    && cp -r /app/frontend/dist/* /app/backend/static/ 2>/dev/null || true
+# React build klasörünün içeriğini doğrudan backend/static altına kopyala
+# (Hata varsa Docker build aşamasında patlasın ki nerede durduğumuzu görelim)
+COPY --from=frontend-builder /app/frontend/build/ /app/backend/static/
 
 RUN chmod -R 777 /app
 
