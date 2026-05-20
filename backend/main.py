@@ -15,7 +15,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# API Endpointlerin (Orijinal yapın)
+# Senin orijinal API Endpoint'lerin
 @app.get("/api/assets")
 async def get_assets():
     return {"videos": [], "audios": []}
@@ -26,40 +26,47 @@ async def export_video(data: dict):
 
 
 # ====================================================================
-# SIFIR HATA GÜVENLİ STATİK DOSYA SERVİS SİSTEMİ
+# GARANTİLİ YAN KLASÖR STATİK BAĞLANTISI
 # ====================================================================
 current_dir = os.path.dirname(os.path.abspath(__file__))
-static_dir = os.path.join(current_dir, "static")
 
-# Eğer klasör yoksa çalışma anında hata vermemesi için oluşturuyoruz
-if not os.path.exists(static_dir):
-    os.makedirs(static_dir)
+# Az önce yan klasörde derlenen dist veya build yollarını hedef alıyoruz
+frontend_paths = [
+    os.path.join(current_dir, "..", "frontend", "dist"),
+    os.path.join(current_dir, "..", "frontend", "build"),
+    os.path.join(current_dir, "frontend", "dist"),
+    os.path.join(current_dir, "frontend", "build")
+]
 
-# Vite ve React asset yapılandırmalarını dışarıya açıyoruz
-if os.path.exists(os.path.join(static_dir, "assets")):
-    app.mount("/assets", StaticFiles(directory=os.path.join(static_dir, "assets")), name="assets")
-if os.path.exists(os.path.join(static_dir, "static")):
-    app.mount("/static", StaticFiles(directory=os.path.join(static_dir, "static")), name="static")
+static_dir = None
+for path in frontend_paths:
+    if os.path.exists(path) and "index.html" in os.listdir(path):
+        static_dir = path
+        break
 
-# Gelen tüm ana ve alt sayfa isteklerini yakalayıp ekrana React arayüzünü basan Catch-All rotası
-@app.get("/{catchall:path}")
-async def serve_react(catchall: str):
-    # API çağrısı ise dokunma
-    if catchall.startswith("api/"):
-        return None
-    
-    # Eğer tarayıcı index.css, main.js gibi spesifik bir dosya istiyorsa ve o dosya varsa onu gönder
-    specific_file = os.path.join(static_dir, catchall)
-    if os.path.exists(specific_file) and os.path.isfile(specific_file):
-        return FileResponse(specific_file)
+if static_dir:
+    # Assets veya static klasörleri mevcutsa mount et
+    if os.path.exists(os.path.join(static_dir, "assets")):
+        app.mount("/assets", StaticFiles(directory=os.path.join(static_dir, "assets")), name="assets")
+    if os.path.exists(os.path.join(static_dir, "static")):
+        app.mount("/static", StaticFiles(directory=os.path.join(static_dir, "static")), name="static")
+
+    # Tüm tarayıcı isteklerini index.html'e pasla (Arayüzün açılması için)
+    @app.get("/{catchall:path}")
+    async def serve_react(catchall: str):
+        if catchall.startswith("api/"):
+            return None
         
-    # Geri kalan tüm durumlarda ana React sayfasını (index.html) tarayıcıya bas
-    index_html_path = os.path.join(static_dir, "index.html")
-    if os.path.exists(index_html_path):
-        return FileResponse(index_html_path)
-    
-    # Eğer hala dosya kopyalanamamışsa hata logunu JSON olarak değil düz html olarak gösterelim ki tarayıcı anlasın
-    return FileResponse(os.path.join(static_dir, "index.html")) if os.path.exists(index_html_path) else {"error": "Frontend derleme dosyaları static klasöründe bulunamadı."}
+        specific_file = os.path.join(static_dir, catchall)
+        if os.path.exists(specific_file) and os.path.isfile(specific_file):
+            return FileResponse(specific_file)
+            
+        return FileResponse(os.path.join(static_dir, "index.html"))
+else:
+    # Eğer hiçbir yer bulamazsa çökme, geçici olarak ana dizini bağla
+    @app.get("/")
+    async def root():
+        return {"status": "API Aktif", "message": "Derlenen arayüz klasörü bulunamadı."}
 
 if __name__ == "__main__":
     uvicorn.run("main:app", host="0.0.0.0", port=3012, reload=False)
