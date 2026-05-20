@@ -13,7 +13,7 @@ ARG VITE_API_URL
 ENV VITE_API_URL=$VITE_API_URL
 
 COPY frontend/ ./
-# Build esnasında hata oluşsa bile sürecin tamamen çökmesini engellemek için || true ekledik
+# Hata oluşsa dahi build sürecinin tamamen kilitlenmesini engeller
 RUN npm run build || true
 
 # ==========================================
@@ -27,6 +27,7 @@ FROM docker.io/mwader/static-ffmpeg:6.1.1 AS ffmpeg-source
 FROM docker.io/library/python:3.10-slim-bookworm
 WORKDIR /app
 
+# Gerekli sistem kütüphaneleri
 RUN apt-get clean && apt-get update && apt-get install -y --no-install-recommends \
     libsm6 \
     libxext6 \
@@ -35,23 +36,25 @@ RUN apt-get clean && apt-get update && apt-get install -y --no-install-recommend
     libgl1-mesa-glx \
     && rm -rf /var/lib/apt/lists/*
 
+# FFmpeg kurulumları
 COPY --from=ffmpeg-source /ffmpeg /usr/bin/ffmpeg
 COPY --from=ffmpeg-source /ffprobe /usr/bin/ffprobe
 RUN chmod +x /usr/bin/ffmpeg && chmod +x /usr/bin/ffprobe
 
+# Python bağımlılıkları
 COPY backend/requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Tüm kaynak kodları çalışma ortamına aktar
+# Tüm kaynak kodları içeri aktar
 COPY . .
 
-# Hata Önleyici Katman: Klasörlerin varlığını garanti altına alıyoruz
+# Klasör yapılarını önceden garanti altına alıyoruz
 RUN mkdir -p /app/backend/frontend/dist \
     && mkdir -p /app/backend/frontend/build \
     && mkdir -p /app/frontend/dist \
     && mkdir -p /app/frontend/build
 
-# Kritik Çözüm: Dosyaları kopyalarken "bulamazsan hata fırlatma, devam et" komutunu işletiyoruz
+# Dosyaları kopyalarken "bulamazsan hata fırlatma, devam et" komutu
 COPY --from=frontend-builder /app/frontend/dist/ /app/backend/frontend/dist/ 2>/dev/null || true
 COPY --from=frontend-builder /app/frontend/build/ /app/backend/frontend/build/ 2>/dev/null || true
 COPY --from=frontend-builder /app/frontend/dist/ /app/frontend/dist/ 2>/dev/null || true
