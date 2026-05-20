@@ -7,8 +7,17 @@ WORKDIR /app/frontend
 # Bağımlılıkları kopyala
 COPY frontend/package*.json ./
 
-# Axios paketini el ile zorunlu yüklüyoruz
+# Axios ve gerekli paketleri el ile zorunlu yüklüyoruz
 RUN npm install --quiet && npm install axios --quiet
+
+# CRİTİCAL HATA ÇÖZÜMÜ: Coolify üzerindeki .env değişkenlerini derleme anına aktarıyoruz
+# Eğer kodunuzda süreç "process.env.REACT_APP_..." şeklinde okunuyorsa alttaki satırları açın:
+ARG REACT_APP_API_URL
+ENV REACT_APP_API_URL=$REACT_APP_API_URL
+
+# Eğer Vite kullanıyorsanız alttaki satırları açın:
+ARG VITE_API_URL
+ENV VITE_API_URL=$VITE_API_URL
 
 # Tüm kaynak kodları kopyala ve derle
 COPY frontend/ ./
@@ -22,7 +31,6 @@ FROM docker.io/mwader/static-ffmpeg:6.1.1 AS ffmpeg-source
 # ==========================================
 # 3. AŞAMA: ÇALIŞMA VE ÇIKTI ORTAMI (BACKEND)
 # ==========================================
-# HATA ÇÖZÜMÜ: Depo hatalarını engellemek için kararlı Debian Bookworm tabanına geçtik
 FROM docker.io/library/python:3.10-slim-bookworm
 WORKDIR /app
 
