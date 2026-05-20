@@ -5,7 +5,8 @@ FROM docker.io/library/node:18-alpine AS frontend-builder
 WORKDIR /app/frontend
 
 COPY frontend/package*.json ./
-RUN npm install --quiet && npm install axios --quiet
+# Derleme hızını artırmak ve şişmeyi önlemek için temiz kurulum yapıyoruz
+RUN npm ci --quiet || npm install --quiet
 
 # Coolify ortam değişkenlerini derleme anına aktarır
 ARG REACT_APP_API_URL
@@ -27,6 +28,7 @@ FROM docker.io/mwader/static-ffmpeg:6.1.1 AS ffmpeg-source
 FROM docker.io/library/python:3.10-slim-bookworm
 WORKDIR /app
 
+# Sistem kütüphanelerini güvenle yükle
 RUN apt-get clean && apt-get update && apt-get install -y --no-install-recommends \
     libsm6 \
     libxext6 \
@@ -43,7 +45,15 @@ COPY backend/requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 COPY . .
-COPY --from=frontend-builder /app/frontend/build ./frontend/build
+
+# CRITICAL HATA ÇÖZÜMÜ: Hem 'dist' hem 'build' ihtimalini garantiye alıyoruz.
+# React projen hangisini üretirse üretsin backend klasörüne doğru isimle taşınacak.
+RUN if [ -d "/app/frontend/dist" ]; then \
+        cp -r /app/frontend/dist ./frontend/dist && cp -r /app/frontend/dist ./frontend/build; \
+    else \
+        cp -r /app/frontend/build ./frontend/build && cp -r /app/frontend/build ./frontend/dist; \
+    fi
+
 RUN chmod -R 777 /app
 
 WORKDIR /app/backend
