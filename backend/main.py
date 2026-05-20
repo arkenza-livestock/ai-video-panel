@@ -1,15 +1,13 @@
-from fastapi import FastAPI
-from fastapi.middleware.cors import CORSMiddleware
-from fastapi.staticfiles import StaticFiles
-from fastapi.responses import FileResponse
 import os
 import uvicorn
+from fastapi import FastAPI
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
+from fastapi.middleware.cors import CORSMiddleware
 
-app = FastAPI(
-    title="Atmosfer Studio Pro API",
-    version="2.0"
-)
+app = FastAPI(title="Atmosfer Studio API", version="1.0.0")
 
+# Tarayıcı engellerini (CORS) aşmak için izinler
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -18,45 +16,51 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# --- API ROUTER VE KODLARINIZ BURAYA EKLEYEBİLİRSİNİZ ---
-@app.get("/api/v1/status")
-def get_status():
-    return {"status": "ok", "message": "Backend servisleri 3012 portu üzerinden çalışıyor."}
+# Örnek API Endpoint'leri
+@app.get("/api/assets")
+async def get_assets():
+    return {"videos": [], "audios": []}
 
+@app.post("/api/export")
+async def export_video(data: dict):
+    return {"status": "success", "downloadUrl": "/static/output.mp4"}
 
-# --- FRONTEND ENTEGRASYON KATMANI (GARANTİLİ DİZİN KONTROLÜ) ---
-# Docker içindeki mutlak yolları (Absolute Path) kontrol ediyoruz
-possible_paths = [
-    os.path.abspath("/app/frontend/build"),
-    os.path.abspath("../frontend/build"),
-    os.path.abspath("./frontend/build")
+# Production ortamında derlenmiş React dosyalarını servis etme mantığı
+current_dir = os.path.dirname(os.path.abspath(__file__))
+frontend_paths = [
+    os.path.join(current_dir, "frontend", "dist"),
+    os.path.join(current_dir, "frontend", "build"),
+    os.path.join(current_dir, "..", "frontend", "dist"),
+    os.path.join(current_dir, "..", "frontend", "build")
 ]
 
-frontend_build_path = None
-for path in possible_paths:
-    if os.path.exists(path) and os.path.exists(os.path.join(path, "index.html")):
-        frontend_build_path = path
-        break
+static_dir = None
+for path in frontend_paths:
+    if os.path.exists(path) and os.path.isdir(path):
+        if "index.html" in os.listdir(path):
+            static_dir = path
+            break
 
-if frontend_build_path:
-    # Statik klasör tanımlaması (css, js, media dosyaları için)
-    static_dir = os.path.join(frontend_build_path, "static")
-    if os.path.exists(static_dir):
-        app.mount("/static", StaticFiles(directory=static_dir), name="static")
+if static_dir:
+    # Asset dosyaları için static klasörünü bağla
+    if os.path.exists(os.path.join(static_dir, "static")):
+        app.mount("/static", StaticFiles(directory=os.path.join(static_dir, "static")), name="static")
     
-    # Geri kalan tüm istekleri React Router'ın karşılaması için index.html'e yönlendir
+    # Tüm sayfa yönlendirmelerini index.html'e pasla (SPA routing)
     @app.get("/{catchall:path}")
-    async def serve_frontend(catchall: str):
-        return FileResponse(os.path.join(frontend_build_path, "index.html"))
+    async def serve_react(catchall: str):
+        if catchall.startswith("api/"):
+            return None
+        
+        specific_file = os.path.join(static_dir, catchall)
+        if os.path.exists(specific_file) and os.path.isfile(specific_file):
+            return FileResponse(specific_file)
+            
+        return FileResponse(os.path.join(static_dir, "index.html"))
 else:
     @app.get("/")
-    def fallback_root():
-        return {
-            "status": "Backend Çalışıyor",
-            "error": "Frontend build klasörü veya index.html bulunamadı.",
-            "tar can yollari": possible_paths
-        }
-
+    async def root():
+        return {"message": "API aktif, ancak frontend statik dosyaları bulunamadı."}
 
 if __name__ == "__main__":
-    uvicorn.run("main:app", host="0.0.0.0", port=3012, reload=False)
+    uvicorn.run("main:app", host="0.0.0.0", port=3012, reload=True)
