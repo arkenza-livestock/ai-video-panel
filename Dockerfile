@@ -1,53 +1,52 @@
-# Temel imaj olarak Debian tabanlı Python kullanıyoruz (Hem node hem python çalıştırabilmek için)
-FROM docker.io/library/python:3.10-slim-bookworm
-WORKDIR /app
+# Multi-stage build - Önce frontend'i build et
+FROM node:18-alpine AS frontend-builder
 
-# Sistem gereksinimlerini ve Node.js'i doğrudan buraya kuruyoruz
-RUN apt-get clean && apt-get update && apt-get install -y --no-install-recommends \
-    curl \
-    libsm6 \
-    libxext6 \
-    libxrender-dev \
-    libglib2.0-0 \
-    libgl1-mesa-glx \
-    && curl -fsSL https://deb.nodesource.com/setup_18.x | bash - \
-    && apt-get install -y nodejs \
-    && rm -rf /var/lib/apt/lists/*
-
-# FFmpeg kurulumunu doğrudan statik kaynaktan çekiyoruz
-FROM docker.io/mwader/static-ffmpeg:6.1.1 AS ffmpeg-source
-FROM docker.io/library/python:3.10-slim-bookworm AS final-env
-WORKDIR /app
-
-# Gerekli sistem paketlerini kur
-RUN apt-get clean && apt-get update && apt-get install -y --no-install-recommends \
-    curl \
-    libsm6 \
-    libxext6 \
-    libxrender-dev \
-    libglib2.0-0 \
-    libgl1-mesa-glx \
-    && curl -fsSL https://deb.nodesource.com/setup_18.x | bash - \
-    && apt-get install -y nodejs \
-    && rm -rf /var/lib/apt/lists/*
-
-COPY --from=ffmpeg-source /ffmpeg /usr/bin/ffmpeg
-COPY --from=ffmpeg-source /ffprobe /usr/bin/ffprobe
-RUN chmod +x /usr/bin/ffmpeg && chmod +x /usr/bin/ffprobe
-
-# 1. Projenin tüm dosyalarını içeri alıyoruz (Klasör hiyerarşisi bozulmasın diye)
-COPY . .
-
-# 2. Python bağımlılıklarını kur
-RUN pip install --no-cache-dir -r backend/requirements.txt
-
-# 3. Frontend klasörüne gir, paketleri kur ve doğrudan orada build al
 WORKDIR /app/frontend
-RUN npm install --quiet
+
+# Frontend dependencies
+COPY frontend/package*.json ./
+RUN npm ci --quiet
+
+# Frontend source
+COPY frontend/ ./
 RUN npm run build
 
-# 4. Çalışma dizinini backend'e çek ve ayağa kaldır
-WORKDIR /app/backend
+# Final image
+FROM python:3.10-slim-bookworm
+
+WORKDIR /app
+
+# Sistem gereksinimleri
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    curl \
+    libsm6 \
+    libxext6 \
+    libxrender-dev \
+    libglib2.0-0 \
+    libgl1-mesa-glx \
+    && rm -rf /var/lib/apt/lists/*
+
+# FFmpeg kurulumu
+COPY --from=mwader/static-ffmpeg:6.1.1 /ffmpeg /usr/bin/ffmpeg
+COPY --from=mwader/static-ffmpeg:6.1.1 /ffprobe /usr/bin/ffprobe
+RUN chmod +x /usr/bin/ffmpeg /usr/bin/ffprobe
+
+# Backend dependencies
+COPY backend/requirements.txt ./backend/
+RUN pip install --no-cache-dir -r backend/requirements.txt
+
+# Backend source
+COPY backend/ ./backend/
+
+# Build edilmiş frontend'i kopyala
+COPY --from=frontend-builder /app/frontend/dist ./backend/static/
+
+# Environment variables
+ENV PYTHONUNBUFFERED=1
+ENV PORT=3012
+
 EXPOSE 3012
+
+WORKDIR /app/backend
 
 CMD ["python", "main.py"]
