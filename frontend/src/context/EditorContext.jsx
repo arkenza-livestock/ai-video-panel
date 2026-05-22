@@ -4,15 +4,34 @@ import axios from 'axios';
 export const EditorContext = createContext();
 
 export const EditorProvider = ({ children }) => {
-  // Dinamik URL tespiti: Coolify üzerinde port veya env ne olursa olsun patlamaz
-  const BACKEND_URL = 
-    import.meta.env?.VITE_API_URL || 
-    process.env?.REACT_APP_API_URL || 
-    `${window.location.protocol}//${window.location.hostname}:3012`;
+  // Backend URL tespiti - daha güvenilir
+  const getBackendUrl = () => {
+    // Environment variable kontrolü
+    if (import.meta.env?.VITE_API_URL) {
+      return import.meta.env.VITE_API_URL;
+    }
+    if (process.env?.REACT_APP_API_URL) {
+      return process.env.REACT_APP_API_URL;
+    }
+    // Aynı host üzerinden çalışıyorsa
+    const hostname = window.location.hostname;
+    const protocol = window.location.protocol;
+    // Eğer development modundaysa
+    if (process.env.NODE_ENV === 'development') {
+      return 'http://localhost:3012';
+    }
+    // Production: aynı host, port 3012
+    return `${protocol}//${hostname}:3012`;
+  };
+
+  const BACKEND_URL = getBackendUrl();
 
   const [videos, setVideos] = useState([]);
   const [audios, setAudios] = useState([]);
-  const [tracks, setTracks] = useState([]);
+  const [tracks, setTracks] = useState([
+    { id: 'track1', name: 'Video Track', type: 'video', clips: [] },
+    { id: 'track2', name: 'Audio Track', type: 'audio', clips: [] }
+  ]);
   const [selectedTrack, setSelectedTrack] = useState(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
@@ -25,13 +44,16 @@ export const EditorProvider = ({ children }) => {
     const fetchAssets = async () => {
       try {
         setLoading(true);
-        const res = await axios.get(`${BACKEND_URL}/api/assets`);
-        if (res.data) {
-          setVideos(res.data.videos || []);
-          setAudios(res.data.audios || []);
+        const response = await axios.get(`${BACKEND_URL}/api/assets`);
+        if (response.data) {
+          setVideos(response.data.videos || []);
+          setAudios(response.data.audios || []);
         }
       } catch (err) {
         console.error("Medyalar sunucudan yüklenemedi:", err);
+        // Hata durumunda boş array ile devam et
+        setVideos([]);
+        setAudios([]);
       } finally {
         setLoading(false);
       }
@@ -44,15 +66,18 @@ export const EditorProvider = ({ children }) => {
     if (exporting) return;
     try {
       setExporting(true);
-      const res = await axios.post(`${BACKEND_URL}/api/export`, {
-        tracks: timelineTracks || tracks
+      const tracksToExport = timelineTracks || tracks;
+      const response = await axios.post(`${BACKEND_URL}/api/export`, {
+        tracks: tracksToExport
       });
-      if (res.data && res.data.downloadUrl) {
+      if (response.data && response.data.downloadUrl) {
         alert("Video başarıyla oluşturuldu! İndirme linki hazır.");
+        return response.data;
       }
     } catch (err) {
       console.error("Render hatası:", err);
-      alert("Video işlenirken sunucu tarafında bir hata oluştu.");
+      alert(`Video işlenirken hata oluştu: ${err.message}`);
+      throw err;
     } finally {
       setExporting(false);
     }
