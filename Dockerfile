@@ -3,9 +3,9 @@ FROM node:18-alpine AS frontend-builder
 
 WORKDIR /app/frontend
 
-# Frontend dependencies
+# Frontend dependencies - npm ci yerine npm install kullan
 COPY frontend/package*.json ./
-RUN npm ci --quiet
+RUN npm install --quiet
 
 # Frontend source
 COPY frontend/ ./
@@ -38,8 +38,10 @@ RUN pip install --no-cache-dir -r backend/requirements.txt
 # Backend source
 COPY backend/ ./backend/
 
-# Build edilmiş frontend'i kopyala
+# Build edilmiş frontend'i kopyala (dist veya build klasörünü kontrol et)
 COPY --from=frontend-builder /app/frontend/dist ./backend/static/
+# Alternatif olarak build klasörünü dene
+# COPY --from=frontend-builder /app/frontend/build ./backend/static/
 
 # Environment variables
 ENV PYTHONUNBUFFERED=1
