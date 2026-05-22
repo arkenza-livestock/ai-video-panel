@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { EditorProvider, useEditor } from './context/EditorContext';
 import Header from './components/Header';
 import Sidebar from './components/Sidebar';
@@ -8,6 +8,7 @@ import Timeline from './components/Timeline';
 function AppContent() {
   const { 
     tracks, 
+    setTracks,
     isPlaying, 
     setIsPlaying, 
     currentTime, 
@@ -20,7 +21,6 @@ function AppContent() {
     setVideos,
     audios,
     setAudios,
-    setTracks,
     loading
   } = useEditor();
 
