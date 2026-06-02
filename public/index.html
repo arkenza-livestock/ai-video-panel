@@ -1,1 +1,188 @@
-<!DOCTYPE html><html lang="tr"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"><title>AI Video Üretici Panel v2</title><style>:root{--bg:#0f1117;--panel:#171a23;--panel2:#202431;--text:#f3f4f6;--muted:#9ca3af;--line:#2f3545;--accent:#8b5cf6;--accent2:#06b6d4}*{box-sizing:border-box}body{margin:0;font-family:Arial,Helvetica,sans-serif;background:radial-gradient(circle at top left,#24243d,var(--bg) 46%);color:var(--text)}.wrap{width:min(1180px,94vw);margin:28px auto 60px}.hero{display:flex;justify-content:space-between;gap:20px;align-items:flex-start;margin-bottom:22px}h1{margin:0 0 8px;font-size:clamp(28px,4vw,46px);letter-spacing:-.04em}p{color:var(--muted);line-height:1.55}.badge{background:rgba(139,92,246,.18);border:1px solid rgba(139,92,246,.35);padding:10px 14px;border-radius:999px;color:#ddd6fe;white-space:nowrap;font-size:14px}.grid{display:grid;grid-template-columns:1.15fr .85fr;gap:18px}.card{background:rgba(23,26,35,.92);border:1px solid var(--line);border-radius:22px;padding:20px;box-shadow:0 20px 60px rgba(0,0,0,.26)}.card h2{margin:0 0 16px;font-size:20px}label{display:block;margin:14px 0 7px;font-size:14px;color:#d1d5db}input,textarea,select{width:100%;background:var(--panel2);border:1px solid var(--line);color:var(--text);border-radius:13px;padding:12px 13px;outline:none;font-size:15px}textarea{min-height:130px;resize:vertical;line-height:1.5}.row{display:grid;grid-template-columns:1fr 1fr;gap:12px}.row3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px}.help,.small{color:var(--muted);font-size:12px;line-height:1.45;margin-top:6px}.checks{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px}.check{display:flex;gap:9px;align-items:center;background:var(--panel2);border:1px solid var(--line);border-radius:13px;padding:11px}.check input{width:auto}.btn{width:100%;margin-top:18px;border:none;background:linear-gradient(135deg,var(--accent),var(--accent2));color:white;font-weight:700;border-radius:15px;padding:15px 18px;font-size:16px;cursor:pointer}.btn:disabled{opacity:.55;cursor:not-allowed}.status{background:#10131b;border:1px solid var(--line);border-radius:15px;padding:14px;min-height:86px;color:var(--muted);line-height:1.5;white-space:pre-wrap;overflow:auto}.preview{border-radius:15px;border:1px solid var(--line);background:#0b0d12;min-height:230px;display:grid;place-items:center;overflow:hidden;color:var(--muted);text-align:center;padding:12px}.preview img,.preview video{width:100%;height:auto;border-radius:12px;display:block;margin-bottom:8px}.result a{color:#67e8f9;word-break:break-all}.pill{display:inline-block;padding:7px 10px;background:rgba(34,197,94,.14);border:1px solid rgba(34,197,94,.3);border-radius:999px;color:#bbf7d0;margin-top:10px;font-size:13px}.tabs{display:flex;gap:8px;margin-bottom:15px;flex-wrap:wrap}.tab{border:1px solid var(--line);background:var(--panel2);color:var(--text);padding:9px 12px;border-radius:999px;cursor:pointer}.tab.active{background:rgba(139,92,246,.25);border-color:rgba(139,92,246,.55)}.section{display:none}.section.active{display:block}@media(max-width:860px){.grid,.row,.row3,.checks{grid-template-columns:1fr}.hero{display:block}.badge{display:inline-block;margin-top:14px}}</style></head><body><main class="wrap"><section class="hero"><div><h1>AI Video Üretici Panel v2</h1><p>Konu yaz, süre seç, ister çoklu görsel yükle ister otomatik sahne/görsel üretimini aç. Panel dosyaları VPS’e yükler, n8n webhook’a gönderir.</p></div><div class="badge">GPT + Çoklu Görsel + Runway + Render</div></section><section class="grid"><form id="videoForm" class="card"><div class="tabs"><button type="button" class="tab active" data-tab="basic">1. Video</button><button type="button" class="tab" data-tab="media">2. Medya</button><button type="button" class="tab" data-tab="edit">3. Edit</button><button type="button" class="tab" data-tab="advanced">4. Otomasyon</button></div><div class="section active" id="basic"><h2>Video Fikri</h2><label>Video Türü</label><select name="videoType"><option value="children_story" selected>Çocuk Hikâyesi / Animasyon</option><option value="lullaby">Ninni / Uyku Videosu</option><option value="ambient">Ambiyans / Yağmur / Şömine</option><option value="study">Ders / Çalışma Atmosferi</option><option value="shorts">Shorts</option></select><label>Video Konusu</label><textarea name="mainPrompt" required placeholder="Örn: Sevimli turkuaz bebek dinozor ve küçük mavi robot, büyülü haritanın peşinden güvenli ve neşeli bir maceraya çıkar."></textarea><label>Sahne Promptları</label><textarea name="scenePrompts" placeholder="İsteğe bağlı. Her satır ayrı sahne olur. Boş bırakılırsa GPT sahneleri oluşturur veya ana prompt çoğaltılır."></textarea><div class="row3"><div><label>Toplam Süre</label><select name="totalMinutes" id="totalMinutes"><option value="1">1 dakika</option><option value="3">3 dakika</option><option value="5">5 dakika</option><option value="10" selected>10 dakika</option><option value="30">30 dakika</option><option value="60">1 saat</option></select></div><div><label>Klip Süresi</label><select name="clipSeconds" id="clipSeconds"><option value="5">5 sn</option><option value="10">10 sn</option><option value="15" selected>15 sn</option></select></div><div><label>Oran</label><select name="ratio"><option value="1280:720" selected>16:9 YouTube</option><option value="720:1280">9:16 Shorts</option><option value="960:960">1:1 Kare</option></select></div></div></div><div class="section" id="media"><h2>Medya</h2><label>Başlangıç / Sahne Görselleri</label><input id="imageFiles" name="images" type="file" accept="image/*" multiple><div class="help">Birden fazla görsel seçebilirsin. Hiç görsel yüklemezsen otomatik görsel üretim seçeneğini aç.</div><div class="checks"><label class="check"><input type="checkbox" name="autoGenerateScenes" checked> GPT ile sahneleri oluştur</label><label class="check"><input type="checkbox" name="autoGenerateImages"> Otomatik görsel üret</label></div><label>Görsel Stili</label><select name="imageStyle"><option value="3D Pixar style children's animation" selected>3D Pixar çocuk animasyonu</option><option value="cinematic realistic ambient">Sinematik gerçekçi ambiyans</option><option value="soft watercolor storybook">Yumuşak suluboya masal kitabı</option><option value="anime cozy fantasy">Anime cozy fantasy</option></select><label>Müzik Kaynağı</label><select name="musicMode"><option value="upload" selected>Müzik yükle</option><option value="ai_prompt">AI müzik promptu kullan</option><option value="none">Müzik yok</option></select><label>Müzik Yükle</label><input name="music" type="file" accept="audio/*"><label>Müzik Promptu</label><textarea name="musicPrompt" placeholder="Örn: Soft magical children's adventure soundtrack, gentle orchestral, playful, calm, seamless loop, 10 minutes."></textarea><label>Logo / Filigran</label><input name="logo" type="file" accept="image/*"></div><div class="section" id="edit"><h2>Edit Ayarları</h2><div class="row"><div><label>Runway Model</label><select name="model"><option value="gen4_turbo" selected>Gen-4 Turbo</option><option value="gen4">Gen-4</option><option value="gen3a_turbo">Gen-3 Alpha Turbo</option></select></div><div><label>Geçiş</label><select name="transition"><option value="fade" selected>Fade</option><option value="crossfade">Crossfade</option><option value="none">Geçiş yok</option></select></div></div><div class="row"><div><label>Müzik Ses Seviyesi</label><select name="musicVolume"><option value="0.25">Düşük</option><option value="0.45" selected>Orta</option><option value="0.7">Yüksek</option></select></div><div><label>Logo Konumu</label><select name="logoPosition"><option value="topRight" selected>Sağ üst</option><option value="bottomRight">Sağ alt</option><option value="topLeft">Sol üst</option><option value="none">Logo yok</option></select></div></div><label>Altyazı / Ekran Yazısı</label><input name="caption" placeholder="Örn: Magical Map Adventure"><label>Negatif Prompt</label><input name="negativePrompt" value="distorted, blurry, scary, unsafe, extra limbs, deformed face, low quality"></div><div class="section" id="advanced"><h2>Otomasyon</h2><div class="checks"><label class="check"><input type="checkbox" name="autoRender" checked> Final MP4 render et</label><label class="check"><input type="checkbox" name="loopMode"> Loop / ambiyans modu</label><label class="check"><input type="checkbox" name="youtubeMeta" checked> YouTube başlık/açıklama üret</label><label class="check"><input type="checkbox" name="safeKidsMode" checked> Çocuk güvenli mod</label></div><div class="help">Bu alanlar n8n’e gönderilir. GPT, görsel üretim, Runway ve FFmpeg/Shotstack node’larında kullanılır.</div></div><button class="btn" id="submitBtn" type="submit">Videoyu Oluştur</button></form><aside class="card"><h2>Önizleme ve Durum</h2><div class="preview" id="preview">Görsel seçince önizleme burada görünür.</div><label>İşlem Durumu</label><div class="status" id="status">Hazır.</div><div class="result" id="result"></div><p class="small">v2: Çoklu görsel, 15 sn klip, GPT sahne üretimi, AI görsel üretim opsiyonu, müzik promptu ve final render parametreleri eklendi.</p></aside></section></main><script>document.querySelectorAll('.tab').forEach(btn=>{btn.addEventListener('click',()=>{document.querySelectorAll('.tab').forEach(b=>b.classList.remove('active'));document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));btn.classList.add('active');document.getElementById(btn.dataset.tab).classList.add('active')})});const form=document.getElementById('videoForm'),statusBox=document.getElementById('status'),resultBox=document.getElementById('result'),submitBtn=document.getElementById('submitBtn'),preview=document.getElementById('preview'),imageFiles=document.getElementById('imageFiles');imageFiles.addEventListener('change',()=>{const files=[...imageFiles.files];if(!files.length){preview.textContent='Görsel seçince önizleme burada görünür.';return}preview.innerHTML=files.slice(0,4).map(f=>`<img src="${URL.createObjectURL(f)}" alt="Önizleme">`).join('')});form.addEventListener('submit',async e=>{e.preventDefault();resultBox.innerHTML='';const fd=new FormData(form);const totalMinutes=Number(document.getElementById('totalMinutes').value);const clipSeconds=Number(document.getElementById('clipSeconds').value);const clipCount=Math.ceil((totalMinutes*60)/clipSeconds);fd.append('clipCount',String(clipCount));fd.append('targetSeconds',String(totalMinutes*60));submitBtn.disabled=true;statusBox.textContent=`İş başlatılıyor...\nToplam süre: ${totalMinutes} dk\nKlip süresi: ${clipSeconds} sn\nTahmini klip sayısı: ${clipCount}`;try{const res=await fetch('/api/create-video',{method:'POST',body:fd});const data=await res.json();if(!res.ok)throw new Error(data.error||'İstek başarısız.');statusBox.textContent=JSON.stringify(data,null,2);const videoUrl=data.videoUrl||data.renderUrl||data.n8n?.videoUrl||data.n8n?.renderUrl||data.n8n?.output;if(videoUrl){resultBox.innerHTML=`<span class="pill">Video hazır</span><p><a href="${videoUrl}" target="_blank" rel="noreferrer">Videoyu aç / indir</a></p><div class="preview"><video src="${videoUrl}" controls></video></div>`}else{resultBox.innerHTML='<span class="pill">İşlem başlatıldı</span><p>Sonuç n8n tarafında render tamamlanınca dönecek.</p>'}}catch(err){statusBox.textContent='Hata: '+err.message}finally{submitBtn.disabled=false}});</script></body></html>
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>AI Video Oluşturucu</title>
+  <style>
+    :root{--bg:#0b1020;--card:#111827;--card2:#172033;--text:#f8fafc;--muted:#94a3b8;--line:#263244;--p:#7c3aed;--c:#06b6d4}
+    *{box-sizing:border-box}
+    body{margin:0;font-family:Arial,Helvetica,sans-serif;background:radial-gradient(circle at top left,rgba(124,58,237,.28),transparent 35%),radial-gradient(circle at top right,rgba(6,182,212,.16),transparent 35%),var(--bg);color:var(--text)}
+    .wrap{width:min(980px,94vw);margin:28px auto 60px}
+    .top{display:flex;justify-content:space-between;gap:18px;align-items:flex-start;margin-bottom:22px}
+    h1{margin:0 0 8px;font-size:clamp(30px,5vw,52px);letter-spacing:-.05em;line-height:1.02}
+    .lead{margin:0;color:var(--muted);line-height:1.55;max-width:700px}
+    .pill{border:1px solid rgba(124,58,237,.45);background:rgba(124,58,237,.16);color:#ddd6fe;padding:10px 13px;border-radius:999px;font-size:13px;white-space:nowrap}
+    .grid{display:grid;grid-template-columns:1.05fr .95fr;gap:18px}
+    .card{background:rgba(17,24,39,.94);border:1px solid var(--line);border-radius:24px;padding:22px;box-shadow:0 24px 70px rgba(0,0,0,.28)}
+    h2{margin:0 0 18px;font-size:22px}
+    label{display:block;margin:16px 0 7px;color:#dbeafe;font-size:14px;font-weight:700}
+    textarea,input,select{width:100%;background:var(--card2);border:1px solid var(--line);color:var(--text);border-radius:15px;padding:14px;outline:none;font-size:15px}
+    textarea{min-height:110px;resize:vertical;line-height:1.55}
+    input[type=file]{padding:12px;color:var(--muted)}
+    .row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+    .help{color:var(--muted);font-size:12px;line-height:1.45;margin-top:6px}
+    .advanced{margin-top:16px;border:1px solid var(--line);border-radius:16px;overflow:hidden;background:rgba(23,32,51,.55)}
+    .advanced summary{cursor:pointer;padding:14px;color:#cbd5e1;font-weight:800;list-style:none}
+    .advanced-inner{padding:0 14px 14px}
+    .btn{width:100%;margin-top:20px;border:0;border-radius:18px;padding:16px 18px;color:white;font-size:17px;font-weight:900;cursor:pointer;background:linear-gradient(135deg,var(--p),var(--c))}
+    .btn:disabled{opacity:.55}
+    .preview{min-height:260px;background:#070b14;border:1px dashed #334155;border-radius:18px;padding:12px;color:var(--muted);overflow:hidden}
+    .thumbs{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+    .thumbs img{width:100%;border-radius:14px;display:block;aspect-ratio:16/9;object-fit:cover;border:1px solid var(--line)}
+    .mini-title{font-size:13px;color:#cbd5e1;font-weight:800;margin:0 0 7px}
+    .status{margin-top:14px;background:#070b14;border:1px solid var(--line);border-radius:16px;padding:14px;min-height:110px;color:var(--muted);white-space:pre-wrap;line-height:1.55;overflow:auto}
+    .steps{display:grid;gap:10px;margin-top:14px}
+    .step{display:flex;gap:10px;color:var(--muted);font-size:13px;line-height:1.45}.num{width:24px;height:24px;display:grid;place-items:center;border-radius:999px;background:rgba(124,58,237,.18);color:#ddd6fe;flex:0 0 auto;font-weight:900}
+    .result a{color:#67e8f9;word-break:break-all}
+    @media(max-width:860px){.grid,.row{grid-template-columns:1fr}.top{display:block}.pill{display:inline-block;margin-top:14px}}
+  </style>
+</head>
+<body>
+<main class="wrap">
+  <section class="top">
+    <div>
+      <h1>AI Video Oluşturucu</h1>
+      <p class="lead">Görselleri yükle, konuyu yaz, seslendirme ve müzik promptunu gir. Sistem n8n üzerinden videoyu üretmek için işlemi başlatır.</p>
+    </div>
+    <div class="pill">Tek ekran profesyonel panel</div>
+  </section>
+
+  <section class="grid">
+    <form id="videoForm" class="card">
+      <h2>Video Bilgileri</h2>
+
+      <label>Video konusu</label>
+      <textarea name="mainPrompt" required placeholder="Sevimli turkuaz bebek dinozor ve küçük mavi robot büyülü haritanın peşinden yıldız kristalini arar."></textarea>
+
+      <label>Görseller</label>
+      <input id="imageFiles" name="images" type="file" accept="image/*" multiple required />
+      <div class="help">3 dakikalık test için 12 görsel yükle. Her görsel ayrı sahne olur.</div>
+
+      <label>Seslendirme metni</label>
+      <textarea name="voiceText" placeholder="Minik Dino ve robot arkadaşı, büyülü haritanın ışığını takip ederek yıldız kristalini bulmak için yola çıktı..."></textarea>
+      <div class="help">Bu metin n8n tarafında Runway/OpenAI TTS için kullanılacak. Ses dosyası yüklemene gerek yok.</div>
+
+      <label>Müzik promptu</label>
+      <textarea name="musicPrompt" placeholder="Magical children's adventure soundtrack, warm orchestral music, gentle piano, celesta, magical bells, playful fantasy atmosphere, instrumental only, no vocals."></textarea>
+      <div class="help">Müzik yükleme yok. Prompttan müzik/soundtrack oluşturma için n8n'e gönderilir.</div>
+
+      <div class="row">
+        <div>
+          <label>Video süresi</label>
+          <select name="totalMinutes" id="totalMinutes">
+            <option value="1">1 dakika</option>
+            <option value="3" selected>3 dakika</option>
+            <option value="5">5 dakika</option>
+            <option value="10">10 dakika</option>
+          </select>
+        </div>
+        <div>
+          <label>Klip süresi</label>
+          <select name="clipSeconds" id="clipSeconds">
+            <option value="5">5 saniye</option>
+            <option value="10">10 saniye</option>
+            <option value="15" selected>15 saniye</option>
+          </select>
+        </div>
+      </div>
+
+      <details class="advanced">
+        <summary>Gelişmiş ayarlar</summary>
+        <div class="advanced-inner">
+          <div class="row">
+            <div>
+              <label>Oran</label>
+              <select name="ratio">
+                <option value="1280:720" selected>16:9 YouTube</option>
+                <option value="720:1280">9:16 Shorts</option>
+              </select>
+            </div>
+            <div>
+              <label>Runway model</label>
+              <select name="model">
+                <option value="gen4_turbo" selected>Gen-4 Turbo</option>
+                <option value="gen4">Gen-4</option>
+                <option value="gen3a_turbo">Gen-3 Alpha Turbo</option>
+              </select>
+            </div>
+          </div>
+
+          <label>Negatif prompt</label>
+          <input name="negativePrompt" value="blurry, scary, distorted, low quality, extra limbs, deformed face" />
+
+          <input type="hidden" name="transition" value="fade">
+          <input type="hidden" name="autoRender" value="true">
+          <input type="hidden" name="safeKidsMode" value="true">
+          <input type="hidden" name="musicMode" value="prompt">
+          <input type="hidden" name="voiceMode" value="prompt">
+        </div>
+      </details>
+
+      <button class="btn" id="submitBtn" type="submit">Videoyu Oluştur</button>
+    </form>
+
+    <aside class="card">
+      <h2>Önizleme</h2>
+      <div class="preview" id="preview">Görselleri seçince burada görünür.</div>
+
+      <div class="steps">
+        <div class="step"><span class="num">1</span><span>12 görsel yükle.</span></div>
+        <div class="step"><span class="num">2</span><span>Seslendirme metni ve müzik promptu yaz.</span></div>
+        <div class="step"><span class="num">3</span><span>Videoyu oluştur.</span></div>
+      </div>
+
+      <h2 style="margin-top:22px">Durum</h2>
+      <div class="status" id="status">Hazır.</div>
+      <div class="result" id="result"></div>
+    </aside>
+  </section>
+</main>
+
+<script>
+const form=document.getElementById("videoForm");
+const imageFiles=document.getElementById("imageFiles");
+const preview=document.getElementById("preview");
+const statusBox=document.getElementById("status");
+const resultBox=document.getElementById("result");
+const submitBtn=document.getElementById("submitBtn");
+
+imageFiles.addEventListener("change",()=>{
+  const files=[...imageFiles.files];
+  if(!files.length){preview.innerHTML="Görselleri seçince burada görünür.";return;}
+  preview.innerHTML='<div class="thumbs">'+files.slice(0,12).map((file,i)=>`
+    <div><p class="mini-title">Sahne ${i+1}</p><img src="${URL.createObjectURL(file)}" alt="Sahne ${i+1}"></div>
+  `).join("")+'</div>';
+});
+
+form.addEventListener("submit",async(e)=>{
+  e.preventDefault();
+  resultBox.innerHTML="";
+  const fd=new FormData(form);
+  const totalMinutes=Number(document.getElementById("totalMinutes").value);
+  const clipSeconds=Number(document.getElementById("clipSeconds").value);
+  const clipCount=Math.ceil((totalMinutes*60)/clipSeconds);
+
+  fd.append("clipCount", String(clipCount));
+  fd.append("targetSeconds", String(totalMinutes*60));
+  fd.append("autoGenerateScenes", "false");
+  fd.append("autoGenerateImages", "false");
+
+  submitBtn.disabled=true;
+  statusBox.textContent=`İşlem başlatılıyor...\nSüre: ${totalMinutes} dk\nKlip süresi: ${clipSeconds} sn\nKlip sayısı: ${clipCount}\nGörsel sayısı: ${imageFiles.files.length}`;
+
+  try{
+    const res=await fetch("/api/create-video",{method:"POST",body:fd});
+    const data=await res.json().catch(()=>({}));
+    if(!res.ok){throw new Error(data.error || data.n8n?.message || "İstek başarısız.");}
+    statusBox.textContent=JSON.stringify(data,null,2);
+    const videoUrl=data.videoUrl || data.renderUrl || data.n8n?.videoUrl || data.n8n?.renderUrl || data.n8n?.output;
+    if(videoUrl){resultBox.innerHTML=`<p><a href="${videoUrl}" target="_blank" rel="noreferrer">Videoyu aç / indir</a></p>`;}
+    else{resultBox.innerHTML=`<p style="color:#94a3b8">İşlem n8n'e gönderildi. Sonucu n8n execution ekranından kontrol et.</p>`;}
+  }catch(err){
+    statusBox.textContent="Hata: "+err.message+"\\n\\nn8n workflow aktif mi, webhook URL doğru mu ve API anahtarları ekli mi kontrol et.";
+  }finally{submitBtn.disabled=false;}
+});
+</script>
+</body>
+</html>
