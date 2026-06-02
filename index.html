@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AI Video Üretici Panel</title>
+  <style>
+    :root{--bg:#0f1117;--panel:#171a23;--panel2:#202431;--text:#f3f4f6;--muted:#9ca3af;--line:#2f3545;--accent:#8b5cf6;--accent2:#06b6d4}
+    *{box-sizing:border-box} body{margin:0;font-family:Arial,Helvetica,sans-serif;background:radial-gradient(circle at top left,#24243d,var(--bg) 46%);color:var(--text)}
+    .wrap{width:min(1160px,94vw);margin:28px auto 60px}.hero{display:flex;justify-content:space-between;gap:20px;align-items:flex-start;margin-bottom:22px}
+    h1{margin:0 0 8px;font-size:clamp(28px,4vw,46px);letter-spacing:-.04em}p{color:var(--muted);line-height:1.55}.badge{background:rgba(139,92,246,.18);border:1px solid rgba(139,92,246,.35);padding:10px 14px;border-radius:999px;color:#ddd6fe;white-space:nowrap;font-size:14px}
+    .grid{display:grid;grid-template-columns:1.15fr .85fr;gap:18px}.card{background:rgba(23,26,35,.92);border:1px solid var(--line);border-radius:22px;padding:20px;box-shadow:0 20px 60px rgba(0,0,0,.26)}
+    .card h2{margin:0 0 16px;font-size:20px}label{display:block;margin:14px 0 7px;font-size:14px;color:#d1d5db}
+    input,textarea,select{width:100%;background:var(--panel2);border:1px solid var(--line);color:var(--text);border-radius:13px;padding:12px 13px;outline:none;font-size:15px}
+    textarea{min-height:130px;resize:vertical;line-height:1.5}.row{display:grid;grid-template-columns:1fr 1fr;gap:12px}.row3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px}
+    .help,.small{color:var(--muted);font-size:12px;line-height:1.45;margin-top:6px}.btn{width:100%;margin-top:18px;border:none;background:linear-gradient(135deg,var(--accent),var(--accent2));color:white;font-weight:700;border-radius:15px;padding:15px 18px;font-size:16px;cursor:pointer}.btn:disabled{opacity:.55;cursor:not-allowed}
+    .status{background:#10131b;border:1px solid var(--line);border-radius:15px;padding:14px;min-height:86px;color:var(--muted);line-height:1.5;white-space:pre-wrap}
+    .preview{border-radius:15px;border:1px solid var(--line);background:#0b0d12;min-height:230px;display:grid;place-items:center;overflow:hidden;color:var(--muted);text-align:center;padding:12px}.preview img,.preview video{width:100%;height:auto;border-radius:12px;display:block}
+    .result a{color:#67e8f9;word-break:break-all}.pill{display:inline-block;padding:7px 10px;background:rgba(34,197,94,.14);border:1px solid rgba(34,197,94,.3);border-radius:999px;color:#bbf7d0;margin-top:10px;font-size:13px}
+    @media(max-width:860px){.grid,.row,.row3{grid-template-columns:1fr}.hero{display:block}.badge{display:inline-block;margin-top:14px}}
+  </style>
+</head>
+<body>
+<main class="wrap">
+  <section class="hero">
+    <div>
+      <h1>AI Video Üretici Panel</h1>
+      <p>Görseli panel yükler, VPS üzerinde public URL’ye çevirir, sonra n8n webhook’a yollar. n8n arka planda Runway üretimi ve otomatik edit/render sürecini başlatır.</p>
+    </div>
+    <div class="badge">VPS Upload + n8n</div>
+  </section>
+
+  <section class="grid">
+    <form id="videoForm" class="card">
+      <h2>Üretim Ayarları</h2>
+
+      <label>Görsel Yükle</label>
+      <input id="imageFile" name="image" type="file" accept="image/*" required />
+
+      <label>Ana Prompt</label>
+      <textarea name="mainPrompt" required placeholder="Örn: Cute turquoise baby dinosaur and floating robot explore a glowing magical map in a colorful kids bedroom. Cinematic smooth motion, cheerful, safe, high quality."></textarea>
+
+      <label>Sahne Promptları</label>
+      <textarea name="scenePrompts" placeholder="İsteğe bağlı. Her satır ayrı klip olur. Boş bırakırsan ana prompt tekrarlanır."></textarea>
+
+      <div class="row3">
+        <div>
+          <label>Toplam Süre</label>
+          <select name="totalMinutes" id="totalMinutes">
+            <option value="1">1 dakika</option><option value="3">3 dakika</option><option value="5">5 dakika</option><option value="10" selected>10 dakika</option><option value="30">30 dakika</option><option value="60">1 saat</option>
+          </select>
+        </div>
+        <div>
+          <label>Klip Süresi</label>
+          <select name="clipSeconds" id="clipSeconds">
+            <option value="5">5 sn</option><option value="10" selected>10 sn</option>
+          </select>
+          <div class="help">Runway API genelde 5/10 sn çalışır. 15 sn için render tarafında uzatma gerekir.</div>
+        </div>
+        <div>
+          <label>Oran</label>
+          <select name="ratio">
+            <option value="1280:720" selected>16:9 YouTube</option><option value="720:1280">9:16 Shorts</option><option value="960:960">1:1 Kare</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="row">
+        <div>
+          <label>Runway Model</label>
+          <select name="model"><option value="gen4_turbo" selected>Gen-4 Turbo</option><option value="gen4">Gen-4</option><option value="gen3a_turbo">Gen-3 Alpha Turbo</option></select>
+        </div>
+        <div>
+          <label>Edit Geçişi</label>
+          <select name="transition"><option value="fade" selected>Fade</option><option value="crossfade">Crossfade</option><option value="none">Geçiş Yok</option></select>
+        </div>
+      </div>
+
+      <label>Negatif Prompt</label>
+      <input name="negativePrompt" placeholder="distorted, blurry, scary, unsafe, extra limbs" />
+
+      <div class="row">
+        <div><label>Müzik Yükle</label><input name="music" type="file" accept="audio/*" /></div>
+        <div><label>Logo / Filigran</label><input name="logo" type="file" accept="image/*" /></div>
+      </div>
+
+      <label>Altyazı / Ekran Yazısı</label>
+      <input name="caption" placeholder="Örn: Magical Map Adventure" />
+
+      <button class="btn" id="submitBtn" type="submit">Videoyu Oluştur</button>
+    </form>
+
+    <aside class="card">
+      <h2>Önizleme ve Durum</h2>
+      <div class="preview" id="preview">Görsel seçince burada önizleme görünür.</div>
+      <label>İşlem Durumu</label>
+      <div class="status" id="status">Hazır.</div>
+      <div class="result" id="result"></div>
+      <p class="small">Bu sürüm Cloudinary/S3 istemez. Yüklenen medya VPS üzerindeki /uploads klasöründe yayınlanır.</p>
+    </aside>
+  </section>
+</main>
+
+<script>
+const form=document.getElementById("videoForm"),statusBox=document.getElementById("status"),resultBox=document.getElementById("result"),submitBtn=document.getElementById("submitBtn"),preview=document.getElementById("preview"),imageFile=document.getElementById("imageFile");
+imageFile.addEventListener("change",()=>{const file=imageFile.files[0];if(!file)return;preview.innerHTML=`<img src="${URL.createObjectURL(file)}" alt="Önizleme">`;});
+form.addEventListener("submit",async(e)=>{
+  e.preventDefault(); resultBox.innerHTML="";
+  const fd=new FormData(form);
+  const totalMinutes=Number(document.getElementById("totalMinutes").value);
+  const clipSeconds=Number(document.getElementById("clipSeconds").value);
+  fd.append("clipCount", String(Math.ceil((totalMinutes*60)/clipSeconds)));
+  submitBtn.disabled=true;
+  statusBox.textContent="Dosyalar VPS'e yükleniyor ve n8n'e gönderiliyor...";
+  try{
+    const res=await fetch("/api/create-video",{method:"POST",body:fd});
+    const data=await res.json();
+    if(!res.ok) throw new Error(data.error || "İstek başarısız.");
+    statusBox.textContent=JSON.stringify(data,null,2);
+    const videoUrl=data.videoUrl||data.renderUrl||data.url||data.output;
+    if(videoUrl){
+      resultBox.innerHTML=`<span class="pill">Video hazır</span><p><a href="${videoUrl}" target="_blank" rel="noreferrer">Videoyu aç / indir</a></p><div class="preview"><video src="${videoUrl}" controls></video></div>`;
+    } else {
+      resultBox.innerHTML=`<span class="pill">İşlem başlatıldı</span><p>Render sonucu n8n tarafında kontrol edilecek.</p>`;
+    }
+  }catch(err){statusBox.textContent="Hata: "+err.message;}
+  finally{submitBtn.disabled=false;}
+});
+</script>
+</body>
+</html>
