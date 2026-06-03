@@ -1,6 +1,6 @@
 {
-  "name": "ai-video-studio-pro",
-  "version": "1.0.0",
+  "name": "ai-video-studio-pro-fixed",
+  "version": "1.0.2",
   "type": "module",
   "scripts": {
     "start": "node server.js"
