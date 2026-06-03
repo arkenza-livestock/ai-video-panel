@@ -41,7 +41,8 @@ function pub(req,n,f="uploads"){return`${baseUrl(req)}/${f}/${n}`}
 function rel(n,f){return`/${f}/${n}`}
 function apiKey(name){return name==="openai"?setting("api.openai.key",process.env.OPENAI_API_KEY||""):setting(`api.${name}.key`,"")}
 function q(p){return"file '"+p.replace(/'/g,"'\\''")+"'"}
-function run(cmd,args){return new Promise((ok,bad)=>{const p=spawn(cmd,args,{stdio:["ignore","pipe","pipe"]});let err="";p.stderr.on("data",d=>err+=d.toString());p.on("close",c=>c===0?ok():bad(new Error(`${cmd} failed (${c})\n${err}`)))})}
+function run(cmd,args){return new Promise((ok,bad)=>{const p=spawn(cmd,args,{stdio:["ignore","pipe","pipe"]});let out="",err="";p.stdout.on("data",d=>out+=d.toString());p.stderr.on("data",d=>err+=d.toString());p.on("close",c=>c===0?ok({out,err}):bad(new Error(`${cmd} failed (${c})
+${err}`)))})}
 
 app.set("trust proxy",true);
 app.use(cors());
@@ -112,9 +113,49 @@ async function renderProject(req,row){
     args.push("-filter_complex",`[0:v]scale=1280:720:force_original_aspect_ratio=decrease,pad=1280:720:(ow-iw)/2:(oh-ih)/2,setsar=1,setpts=${(1/speed).toFixed(6)}*PTS[v]`,"-map","[v]","-r","30","-c:v","libx264","-preset","veryfast","-crf","20","-an",out);
     await run("ffmpeg",args); processed.push(out);
   }
-  const list=path.join(work,"clips.txt"), merged=path.join(work,"merged.mp4");
-  fs.writeFileSync(list,processed.map(q).join("\n"));
-  await run("ffmpeg",["-y","-f","concat","-safe","0","-i",list,"-c","copy",merged]);
+  const merged=path.join(work,"merged.mp4");
+  const transitionType=cfg.transition?.type || "fade";
+  const transitionDuration=Math.max(0.1,Math.min(3,Number(cfg.transition?.duration || 0.8)));
+
+  if(transitionType==="none" || processed.length<2){
+    const list=path.join(work,"clips.txt");
+    fs.writeFileSync(list,processed.map(q).join("\n"));
+    await run("ffmpeg",["-y","-f","concat","-safe","0","-i",list,"-c","copy",merged]);
+  }else{
+    let current=processed[0];
+
+    for(let i=1;i<processed.length;i++){
+      const next=processed[i];
+      const out=path.join(work,`xfade_${String(i).padStart(3,"0")}.mp4`);
+
+      const probe=await run("ffprobe",[
+        "-v","error",
+        "-show_entries","format=duration",
+        "-of","default=noprint_wrappers=1:nokey=1",
+        current
+      ]);
+
+      const duration=Number(probe.out || 0);
+      const offset=Math.max(0,duration-transitionDuration);
+
+      await run("ffmpeg",[
+        "-y",
+        "-i",current,
+        "-i",next,
+        "-filter_complex",
+        `[0:v][1:v]xfade=transition=${transitionType}:duration=${transitionDuration}:offset=${offset},format=yuv420p[v]`,
+        "-map","[v]",
+        "-c:v","libx264",
+        "-preset","veryfast",
+        "-crf","20",
+        out
+      ]);
+
+      current=out;
+    }
+
+    fs.copyFileSync(current,merged);
+  }
 
   const voice=cfg.script?.text?await makeVoiceTrack(id,cfg.script.text,cfg.characters||[]):null;
   const music=cfg.music?.filename?path.join(dirs.uploads,cfg.music.filename):null;
