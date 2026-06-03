@@ -1,0 +1,74 @@
+[
+  {
+    "id": "openai",
+    "name": "OpenAI",
+    "type": [
+      "tts",
+      "script"
+    ],
+    "optional": true,
+    "keyField": "api.openai.key",
+    "status": "not_configured"
+  },
+  {
+    "id": "elevenlabs",
+    "name": "ElevenLabs",
+    "type": [
+      "tts",
+      "voice-clone"
+    ],
+    "optional": true,
+    "keyField": "api.elevenlabs.key",
+    "status": "not_configured"
+  },
+  {
+    "id": "suno",
+    "name": "Suno",
+    "type": [
+      "music"
+    ],
+    "optional": true,
+    "keyField": "api.suno.key",
+    "status": "not_configured"
+  },
+  {
+    "id": "runway",
+    "name": "Runway",
+    "type": [
+      "video"
+    ],
+    "optional": true,
+    "keyField": "api.runway.key",
+    "status": "not_configured"
+  },
+  {
+    "id": "kling",
+    "name": "Kling",
+    "type": [
+      "video"
+    ],
+    "optional": true,
+    "keyField": "api.kling.key",
+    "status": "not_configured"
+  },
+  {
+    "id": "syncso",
+    "name": "Sync.so",
+    "type": [
+      "lip-sync"
+    ],
+    "optional": true,
+    "keyField": "api.syncso.key",
+    "status": "not_configured"
+  },
+  {
+    "id": "hedra",
+    "name": "Hedra",
+    "type": [
+      "lip-sync"
+    ],
+    "optional": true,
+    "keyField": "api.hedra.key",
+    "status": "not_configured"
+  }
+]
