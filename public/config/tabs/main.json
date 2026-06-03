@@ -1,0 +1,58 @@
+[
+  {
+    "id": "dashboard",
+    "label": "Dashboard",
+    "icon": "🏠",
+    "title": "Dashboard",
+    "description": "Projeler, render durumu, API bağlantıları ve kullanım özeti."
+  },
+  {
+    "id": "projects",
+    "label": "Projeler",
+    "icon": "📁",
+    "title": "Projeler",
+    "description": "Tüm video projelerini yönet."
+  },
+  {
+    "id": "studio",
+    "label": "Studio",
+    "icon": "🎬",
+    "title": "Studio",
+    "description": "Video önizleme, timeline ve seçili öğe ayarları."
+  },
+  {
+    "id": "characters",
+    "label": "Karakterler",
+    "icon": "🎭",
+    "title": "Karakter Merkezi",
+    "description": "Karakter, avatar, ses, dil ve ton profilleri."
+  },
+  {
+    "id": "voices",
+    "label": "Sesler",
+    "icon": "🎙️",
+    "title": "Ses Merkezi",
+    "description": "OpenAI, ElevenLabs ve kendi seslerini yönet."
+  },
+  {
+    "id": "music",
+    "label": "Müzik",
+    "icon": "🎵",
+    "title": "Müzik Merkezi",
+    "description": "MP3 yükle, Suno/Mubert gibi sağlayıcılarla üret."
+  },
+  {
+    "id": "ai-tools",
+    "label": "AI Tools",
+    "icon": "🤖",
+    "title": "AI Tools",
+    "description": "Video, müzik, ses, lip sync üretim sağlayıcıları."
+  },
+  {
+    "id": "settings",
+    "label": "Ayarlar",
+    "icon": "⚙️",
+    "title": "Ayarlar",
+    "description": "API anahtarları, genel ayarlar ve render tercihleri."
+  }
+]
