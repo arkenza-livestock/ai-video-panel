@@ -1,6 +1,6 @@
 {
-  "name": "ai-video-studio-editor-ui-v2",
-  "version": "2.0.0",
+  "name": "ai-video-studio-working-editor-v3",
+  "version": "3.0.0",
   "type": "module",
   "scripts": {
     "start": "node server.js"
