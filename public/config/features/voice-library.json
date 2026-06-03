@@ -1,0 +1,103 @@
+[
+  {
+    "id": "alloy",
+    "name": "Alloy",
+    "provider": "openai",
+    "tags": [
+      "denge",
+      "anlatıcı",
+      "nötr"
+    ],
+    "requiresApi": "openai"
+  },
+  {
+    "id": "ash",
+    "name": "Ash",
+    "provider": "openai",
+    "tags": [
+      "sakin",
+      "genç"
+    ],
+    "requiresApi": "openai"
+  },
+  {
+    "id": "ballad",
+    "name": "Ballad",
+    "provider": "openai",
+    "tags": [
+      "masalsı",
+      "yumuşak"
+    ],
+    "requiresApi": "openai"
+  },
+  {
+    "id": "coral",
+    "name": "Coral",
+    "provider": "openai",
+    "tags": [
+      "sıcak",
+      "yumuşak"
+    ],
+    "requiresApi": "openai"
+  },
+  {
+    "id": "echo",
+    "name": "Echo",
+    "provider": "openai",
+    "tags": [
+      "tok",
+      "robotik"
+    ],
+    "requiresApi": "openai"
+  },
+  {
+    "id": "fable",
+    "name": "Fable",
+    "provider": "openai",
+    "tags": [
+      "hikaye",
+      "anlatıcı"
+    ],
+    "requiresApi": "openai"
+  },
+  {
+    "id": "nova",
+    "name": "Nova",
+    "provider": "openai",
+    "tags": [
+      "canlı",
+      "enerjik"
+    ],
+    "requiresApi": "openai"
+  },
+  {
+    "id": "onyx",
+    "name": "Onyx",
+    "provider": "openai",
+    "tags": [
+      "derin",
+      "ciddi"
+    ],
+    "requiresApi": "openai"
+  },
+  {
+    "id": "sage",
+    "name": "Sage",
+    "provider": "openai",
+    "tags": [
+      "olgun",
+      "sakin"
+    ],
+    "requiresApi": "openai"
+  },
+  {
+    "id": "shimmer",
+    "name": "Shimmer",
+    "provider": "openai",
+    "tags": [
+      "parlak",
+      "neşeli"
+    ],
+    "requiresApi": "openai"
+  }
+]

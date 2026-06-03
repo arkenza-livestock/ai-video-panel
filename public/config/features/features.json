@@ -1,0 +1,79 @@
+[
+  {
+    "id": "upload-video",
+    "title": "Video Yükle",
+    "category": "video",
+    "mode": "local",
+    "requiresApi": false,
+    "enabled": true
+  },
+  {
+    "id": "merge-render",
+    "title": "FFmpeg Render",
+    "category": "render",
+    "mode": "local",
+    "requiresApi": false,
+    "enabled": true
+  },
+  {
+    "id": "openai-tts",
+    "title": "OpenAI TTS",
+    "category": "voice",
+    "mode": "api",
+    "provider": "openai",
+    "requiresApi": true,
+    "fallback": "audio-upload"
+  },
+  {
+    "id": "elevenlabs-voice",
+    "title": "ElevenLabs Voice",
+    "category": "voice",
+    "mode": "api",
+    "provider": "elevenlabs",
+    "requiresApi": true,
+    "fallback": "openai-tts"
+  },
+  {
+    "id": "audio-upload",
+    "title": "Hazır Ses Yükle",
+    "category": "voice",
+    "mode": "local",
+    "requiresApi": false,
+    "enabled": true
+  },
+  {
+    "id": "music-upload",
+    "title": "Hazır Müzik Yükle",
+    "category": "music",
+    "mode": "local",
+    "requiresApi": false,
+    "enabled": true
+  },
+  {
+    "id": "suno-music",
+    "title": "Suno ile Müzik Üret",
+    "category": "music",
+    "mode": "api",
+    "provider": "suno",
+    "requiresApi": true,
+    "fallback": "music-upload"
+  },
+  {
+    "id": "runway-video",
+    "title": "Runway Video Üret",
+    "category": "video",
+    "mode": "api",
+    "provider": "runway",
+    "requiresApi": true,
+    "fallback": "upload-video"
+  },
+  {
+    "id": "sync-lipsync",
+    "title": "Lip Sync",
+    "category": "video",
+    "mode": "api",
+    "provider": "syncso",
+    "requiresApi": true,
+    "fallback": "none"
+  }
+]

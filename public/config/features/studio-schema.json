@@ -1,0 +1,103 @@
+{
+  "tracks": [
+    {
+      "id": "video",
+      "label": "Video",
+      "type": "video",
+      "visible": true
+    },
+    {
+      "id": "voice",
+      "label": "Voice",
+      "type": "audio",
+      "visible": true
+    },
+    {
+      "id": "music",
+      "label": "Music",
+      "type": "audio",
+      "visible": true
+    },
+    {
+      "id": "subtitles",
+      "label": "Subtitle",
+      "type": "text",
+      "visible": true
+    }
+  ],
+  "clipActions": [
+    {
+      "id": "trim",
+      "label": "Kes",
+      "icon": "✂",
+      "enabled": true
+    },
+    {
+      "id": "split",
+      "label": "Böl",
+      "icon": "⑂",
+      "enabled": true
+    },
+    {
+      "id": "delete",
+      "label": "Sil",
+      "icon": "🗑",
+      "enabled": true
+    },
+    {
+      "id": "moveLeft",
+      "label": "Sola",
+      "icon": "←",
+      "enabled": true
+    },
+    {
+      "id": "moveRight",
+      "label": "Sağa",
+      "icon": "→",
+      "enabled": true
+    },
+    {
+      "id": "slow",
+      "label": "Yavaşlat",
+      "icon": "🐢",
+      "enabled": true
+    },
+    {
+      "id": "fast",
+      "label": "Hızlandır",
+      "icon": "⚡",
+      "enabled": true
+    }
+  ],
+  "inspectorFields": {
+    "video": [
+      "trimStart",
+      "trimEnd",
+      "speed",
+      "volume",
+      "fadeIn",
+      "fadeOut"
+    ],
+    "voice": [
+      "character",
+      "voice",
+      "speed",
+      "pitch",
+      "emotion",
+      "volume"
+    ],
+    "music": [
+      "loop",
+      "volume",
+      "fadeIn",
+      "fadeOut",
+      "ducking"
+    ],
+    "subtitles": [
+      "text",
+      "position",
+      "fontSize",
+      "style"
+    ]
+  }
+}
