@@ -1,6 +1,6 @@
 {
-  "name": "ai-video-studio-working-editor-v3",
-  "version": "3.0.0",
+  "name": "ai-content-studio-modular-json",
+  "version": "1.0.0",
   "type": "module",
   "scripts": {
     "start": "node server.js"
