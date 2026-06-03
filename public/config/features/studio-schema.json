@@ -58,13 +58,13 @@
     },
     {
       "id": "slow",
-      "label": "Yavaşlat",
+      "label": "Yavaşlat...",
       "icon": "🐢",
       "enabled": true
     },
     {
       "id": "fast",
-      "label": "Hızlandır",
+      "label": "Hızlandır...",
       "icon": "⚡",
       "enabled": true
     }
@@ -73,7 +73,8 @@
     "video": [
       "trimStart",
       "trimEnd",
-      "speed",
+      "speedPreset",
+      "speedManual",
       "volume",
       "fadeIn",
       "fadeOut"
@@ -98,6 +99,41 @@
       "position",
       "fontSize",
       "style"
+    ]
+  },
+  "transitions": {
+    "enabled": true,
+    "defaultType": "fade",
+    "defaultDuration": 0.8,
+    "types": [
+      {
+        "id": "none",
+        "label": "Yok"
+      },
+      {
+        "id": "fade",
+        "label": "Fade"
+      },
+      {
+        "id": "dissolve",
+        "label": "Dissolve"
+      },
+      {
+        "id": "wipeleft",
+        "label": "Wipe Left"
+      },
+      {
+        "id": "wiperight",
+        "label": "Wipe Right"
+      },
+      {
+        "id": "slideleft",
+        "label": "Slide Left"
+      },
+      {
+        "id": "slideright",
+        "label": "Slide Right"
+      }
     ]
   }
 }
