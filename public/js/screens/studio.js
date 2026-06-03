@@ -45,11 +45,7 @@ function bindTop(state,navigate){
   qs("#saveProject").onclick=()=>saveProject(state);
   qs("#renderProject").onclick=()=>renderProject(state);
   qs("#playPreview").onclick=()=>togglePreview(state);
-  qs("#stopPreview").onclick=()=>{
-    sequencePlaying=false;
-    const v=qs("#mainPreview");
-    if(v){v.pause();v.currentTime=0;}
-  };
+  qs("#stopPreview").onclick=()=>{const v=qs("#mainPreview");if(v){v.pause();v.currentTime=0;}};
 }
 
 function openVideoModal(state){
@@ -256,6 +252,21 @@ function renderInspector(state){
       <input id="clipSpeedManual" type="number" min="0.25" max="4" step="0.05" value="${c.speed||1}" placeholder="Manuel hız">
     </div>
     <div class="muted">Render’da aynı hız değeri FFmpeg ile uygulanır. Aralık: 0.25x - 4x.</div>
+
+    <label>Geçiş Tipi</label>
+    <select id="transitionType">
+      <option value="none">Yok</option>
+      <option value="fade">Fade</option>
+      <option value="dissolve">Dissolve</option>
+      <option value="wipeleft">Wipe Left</option>
+      <option value="wiperight">Wipe Right</option>
+      <option value="slideleft">Slide Left</option>
+      <option value="slideright">Slide Right</option>
+    </select>
+
+    <label>Geçiş Süresi</label>
+    <input id="transitionDuration" type="number" min="0.1" max="3" step="0.1" value="${state.project.transition?.duration || 0.8}">
+
     <label>Sahne Konuşması</label><textarea id="sceneVoice">${c.sceneVoiceText||""}</textarea>
     <label>Altyazı</label><input id="subtitle" value="${c.subtitle||""}">
     <label>Genel Script</label><textarea id="scriptText">${state.project.script.text||""}</textarea>
@@ -264,6 +275,8 @@ function renderInspector(state){
   const currentSpeed=String(c.speed||1);
   qs("#clipSpeedPreset").value=presets.includes(currentSpeed)?currentSpeed:"custom";
   qs("#clipSpeedManual").value=Number(c.speed||1);
+  qs("#transitionType").value=state.project.transition?.type || "fade";
+  qs("#transitionDuration").value=state.project.transition?.duration || 0.8;
 
   function applyInspectorChanges(){
     c.trimStart=Number(qs("#trimStart").value||0);
@@ -278,6 +291,11 @@ function renderInspector(state){
     c.speed=speed;
     qs("#clipSpeedManual").value=speed;
 
+    state.project.transition={
+      type:qs("#transitionType").value,
+      duration:Math.max(0.1,Math.min(3,Number(qs("#transitionDuration").value||0.8)))
+    };
+
     c.sceneVoiceText=qs("#sceneVoice").value;
     c.subtitle=qs("#subtitle").value;
     state.project.script.text=qs("#scriptText").value;
@@ -289,14 +307,35 @@ function renderInspector(state){
     if(qs("#clipSpeedPreset").value!=="custom")qs("#clipSpeedManual").value=qs("#clipSpeedPreset").value;
     applyInspectorChanges();
   };
-  ["trimStart","trimEnd","clipSpeedManual","sceneVoice","subtitle","scriptText"].forEach(id=>qs("#"+id).oninput=applyInspectorChanges);
+  ["trimStart","trimEnd","clipSpeedManual","sceneVoice","subtitle","scriptText","transitionType","transitionDuration"].forEach(id=>{
+    qs("#"+id).oninput=applyInspectorChanges;
+    qs("#"+id).onchange=applyInspectorChanges;
+  });
 }
 
 async function saveProject(state){
   const clips=state.project.timeline.clips;
   if(!clips.length)return alert("Önce video ekle.");
   const fd=new FormData();
-  const projectJson={...state.project,timeline:{...state.project.timeline,clips:clips.map(c=>({id:c.id,originalName:c.originalName,trimStart:c.trimStart,trimEnd:c.trimEnd,speed:c.speed,sceneVoiceText:c.sceneVoiceText,subtitle:c.subtitle}))}};
+  const projectJson={
+    ...state.project,
+    transition:{
+      type:state.project.transition?.type || "fade",
+      duration:Number(state.project.transition?.duration || 0.8)
+    },
+    timeline:{
+      ...state.project.timeline,
+      clips:clips.map(c=>({
+        id:c.id,
+        originalName:c.originalName,
+        trimStart:c.trimStart,
+        trimEnd:c.trimEnd,
+        speed:c.speed,
+        sceneVoiceText:c.sceneVoiceText,
+        subtitle:c.subtitle
+      }))
+    }
+  };
   fd.append("projectJson",JSON.stringify(projectJson));
   clips.forEach(c=>fd.append("videos",c.file,c.originalName));
   if(state.project.music?.file)fd.append("music",state.project.music.file,state.project.music.name);
