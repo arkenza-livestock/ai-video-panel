@@ -1,161 +1,75 @@
 <!DOCTYPE html>
 <html lang="tr">
 <head>
-<meta charset="UTF-8"/>
-<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>AI Video Studio</title>
+<meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>AI Video Studio Pro</title>
 <style>
-:root{--bg:#08111f;--card:#111827;--card2:#172033;--line:#263244;--text:#f8fafc;--muted:#94a3b8;--p:#7c3aed;--c:#06b6d4;--ok:#22c55e;--bad:#ef4444}
-*{box-sizing:border-box}body{margin:0;font-family:Arial,Helvetica,sans-serif;background:radial-gradient(circle at top left,rgba(124,58,237,.28),transparent 35%),radial-gradient(circle at top right,rgba(6,182,212,.16),transparent 35%),var(--bg);color:var(--text)}
-.wrap{width:min(1320px,96vw);margin:24px auto 60px}.top{display:flex;justify-content:space-between;gap:18px;align-items:flex-start;margin-bottom:18px}
-h1{margin:0 0 8px;font-size:clamp(30px,5vw,52px);letter-spacing:-.05em;line-height:1.02}.lead{margin:0;color:var(--muted);line-height:1.55;max-width:850px}.pill{border:1px solid rgba(124,58,237,.45);background:rgba(124,58,237,.16);color:#ddd6fe;padding:10px 13px;border-radius:999px;font-size:13px;white-space:nowrap}
-.grid{display:grid;grid-template-columns:400px 1fr;gap:16px}.card{background:rgba(17,24,39,.94);border:1px solid var(--line);border-radius:24px;padding:18px;box-shadow:0 24px 70px rgba(0,0,0,.28)}
-h2{margin:0 0 14px;font-size:21px}h3{margin:0 0 10px;font-size:16px;color:#e2e8f0}label{display:block;margin:13px 0 7px;color:#dbeafe;font-size:14px;font-weight:700}
-textarea,input,select{width:100%;background:var(--card2);border:1px solid var(--line);color:var(--text);border-radius:14px;padding:12px;outline:none;font-size:14px}textarea{min-height:110px;resize:vertical;line-height:1.5}input[type=file]{padding:10px;color:var(--muted)}
-.row{display:grid;grid-template-columns:1fr 1fr;gap:10px}.row3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px}.help{color:var(--muted);font-size:12px;line-height:1.45;margin-top:5px}
-.btn{border:0;border-radius:15px;padding:13px 15px;color:white;font-weight:900;cursor:pointer;background:linear-gradient(135deg,var(--p),var(--c));font-size:15px}.btn.secondary{background:#1e293b;border:1px solid var(--line)}.btn.danger{background:rgba(239,68,68,.2);border:1px solid rgba(239,68,68,.4);color:#fecaca}.btn.full{width:100%;margin-top:16px}
-.panel{display:grid;gap:14px}.tabs{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}.tab{border:1px solid var(--line);background:#101a2c;color:#cbd5e1;padding:9px 11px;border-radius:999px;cursor:pointer;font-weight:700}.tab.active{background:rgba(124,58,237,.24);color:#fff;border-color:rgba(124,58,237,.55)}
-.section{display:none}.section.active{display:block}.character,.clip-card{border:1px solid var(--line);background:#0f172a;border-radius:16px;padding:12px;margin-top:10px}.head{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:8px}.small{font-size:12px;color:var(--muted)}
-.timeline{min-height:260px;background:#070b14;border:1px solid var(--line);border-radius:20px;padding:14px;overflow-x:auto}.track{display:flex;gap:12px;align-items:stretch;min-height:170px}.clip{width:210px;min-width:210px;border:1px solid var(--line);border-radius:16px;background:#111827;padding:10px;position:relative}.clip video{width:100%;aspect-ratio:16/9;background:#000;border-radius:11px}.clip-title{font-weight:800;margin:7px 0 5px;color:#e2e8f0;font-size:13px}.clip-actions{display:flex;gap:6px;margin-top:8px}.clip-actions button{flex:1;border:1px solid var(--line);background:#1e293b;color:#e2e8f0;border-radius:10px;padding:7px;cursor:pointer}
-.status{margin-top:12px;background:#070b14;border:1px solid var(--line);border-radius:16px;padding:13px;min-height:110px;color:var(--muted);white-space:pre-wrap;line-height:1.5;overflow:auto}.project-list{display:grid;gap:8px}.project-item{border:1px solid var(--line);background:#0f172a;border-radius:14px;padding:10px;color:#cbd5e1}.badge{display:inline-block;border-radius:999px;padding:4px 8px;background:rgba(6,182,212,.15);color:#a5f3fc;font-size:12px;margin-top:6px}
-@media(max-width:980px){.grid{grid-template-columns:1fr}.row,.row3{grid-template-columns:1fr}.top{display:block}.pill{display:inline-block;margin-top:12px}}
+:root{--bg:#070b14;--side:#0b1220;--card:#0f172a;--card2:#111827;--line:#263244;--text:#f8fafc;--muted:#94a3b8;--p:#7c3aed;--c:#06b6d4;--g:#22c55e;--r:#ef4444}
+*{box-sizing:border-box}body{margin:0;background:radial-gradient(circle at top left,rgba(124,58,237,.20),transparent 34%),radial-gradient(circle at top right,rgba(6,182,212,.12),transparent 35%),var(--bg);font-family:Arial,sans-serif;color:var(--text);height:100vh;overflow:hidden}
+.app{display:grid;grid-template-columns:235px 1fr;height:100vh}.sidebar{background:linear-gradient(180deg,#0b1220,#070b14);border-right:1px solid var(--line);padding:16px 12px;display:flex;flex-direction:column;gap:14px}
+.logo{display:flex;gap:10px;align-items:center;padding:8px 10px}.logoMark{width:34px;height:34px;border-radius:12px;background:linear-gradient(135deg,var(--p),var(--c));display:grid;place-items:center;font-weight:900}.brand b{display:block}.brand span{font-size:12px;color:var(--muted)}
+.nav{display:grid;gap:6px}.nav button{background:transparent;color:#cbd5e1;border:0;text-align:left;padding:11px 12px;border-radius:12px;cursor:pointer;font-weight:700}.nav button.active{background:rgba(124,58,237,.18);color:white;border:1px solid rgba(124,58,237,.28)}.nav button:hover{background:#111827}
+.statusDot{margin-top:auto;font-size:12px;color:var(--muted);padding:10px}.dot{display:inline-block;width:8px;height:8px;background:var(--g);border-radius:50%;margin-right:7px}.main{overflow:auto;padding:18px}.topbar{display:flex;justify-content:space-between;align-items:center;gap:16px;margin-bottom:16px}.title h1{margin:0;font-size:28px}.title p{margin:4px 0 0;color:var(--muted);font-size:13px}
+.btn{border:0;border-radius:12px;padding:10px 13px;color:white;font-weight:900;cursor:pointer;background:linear-gradient(135deg,var(--p),var(--c))}.btn.secondary{background:#1e293b;border:1px solid var(--line);color:#e2e8f0}.btn.danger{background:rgba(239,68,68,.18);border:1px solid rgba(239,68,68,.38);color:#fecaca}.btn:disabled{opacity:.5}
+.screen{display:none}.screen.active{display:block}.grid{display:grid;grid-template-columns:420px 1fr 330px;gap:14px}.card{background:rgba(15,23,42,.92);border:1px solid var(--line);border-radius:20px;padding:16px;box-shadow:0 18px 50px rgba(0,0,0,.22)}.card h2{margin:0 0 14px;font-size:18px}
+label{display:block;margin:12px 0 6px;color:#dbeafe;font-size:13px;font-weight:800}textarea,input,select{width:100%;background:#111827;border:1px solid var(--line);color:var(--text);border-radius:12px;padding:11px;outline:none}textarea{min-height:105px;resize:vertical;line-height:1.45}input[type=file]{color:var(--muted)}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:10px}.muted{color:var(--muted);font-size:12px;line-height:1.4}.badge{display:inline-flex;border-radius:999px;padding:4px 8px;background:rgba(6,182,212,.15);color:#a5f3fc;font-size:12px}
+.timeline{height:calc(100vh - 220px);min-height:430px;background:#070b14;border:1px solid var(--line);border-radius:18px;padding:12px;overflow:auto}.trackLabel{font-size:12px;color:#94a3b8;margin:0 0 8px}.track{display:flex;gap:12px;align-items:flex-start;min-height:220px}.clip{width:230px;min-width:230px;background:#111827;border:1px solid var(--line);border-radius:16px;padding:10px}.clip video{width:100%;aspect-ratio:16/9;background:#000;border-radius:11px}.clip b{display:block;margin:7px 0 4px;font-size:13px}.clip small{display:block;color:var(--muted);word-break:break-all}.clipBtns{display:flex;gap:6px;margin-top:8px}.clipBtns button{flex:1;background:#1e293b;color:#e2e8f0;border:1px solid var(--line);border-radius:9px;padding:7px;cursor:pointer}
+.character,.projectItem{border:1px solid var(--line);background:#0b1220;border-radius:15px;padding:12px;margin-top:10px}.head{display:flex;justify-content:space-between;gap:10px;align-items:center}.statusBox{background:#070b14;border:1px solid var(--line);border-radius:15px;padding:12px;min-height:110px;color:#94a3b8;white-space:pre-wrap;overflow:auto}.previewBox{height:210px;border-radius:16px;background:#020617;border:1px solid var(--line);display:grid;place-items:center;color:#64748b}.voiceList{display:grid;gap:8px}.voiceRow{display:grid;grid-template-columns:1fr auto auto;gap:8px;align-items:center;background:#0b1220;border:1px solid var(--line);border-radius:12px;padding:9px}.voiceRow span{font-weight:800}.settingsGrid{display:grid;grid-template-columns:1fr 1fr;gap:14px}.fullGrid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px}
+@media(max-width:1180px){.app{grid-template-columns:76px 1fr}.brand,.nav button span{display:none}.grid{grid-template-columns:1fr}.timeline{height:auto}.settingsGrid,.fullGrid{grid-template-columns:1fr}}@media(max-width:760px){body{overflow:auto}.app{display:block;height:auto}.sidebar{position:sticky;top:0;z-index:5;flex-direction:row;overflow:auto}.main{padding:12px}.topbar{display:block}.row{grid-template-columns:1fr}}
 </style>
 </head>
 <body>
-<main class="wrap">
-<section class="top">
-  <div><h1>AI Video Studio</h1><p class="lead">Runway’de ürettiğin klipleri yükle; timeline’da sırala, trim gir, sahne sesi ve altyazı ekle. Karakter sesleri, OpenAI TTS, müzik ve FFmpeg render tek sistemde.</p></div>
-  <div class="pill">Coolify · SQLite · FFmpeg · OpenAI TTS</div>
-</section>
-
-<section class="grid">
-<form id="studioForm" class="card">
-  <div class="tabs">
-    <button type="button" class="tab active" data-tab="project">Proje</button>
-    <button type="button" class="tab" data-tab="voices">Sesler</button>
-    <button type="button" class="tab" data-tab="script">Metin</button>
-    <button type="button" class="tab" data-tab="audio">Müzik</button>
-    <button type="button" class="tab" data-tab="advanced">Render</button>
-  </div>
-
-  <div class="section active" id="project">
-    <h2>Proje ve Klipler</h2>
-    <label>Proje adı</label>
-    <input name="projectName" placeholder="Yıldız Kristali Macerası"/>
-    <label>Video klipleri</label>
-    <input id="videoFiles" name="videos" type="file" accept="video/mp4,video/webm,video/quicktime" multiple required/>
-    <div class="help">Runway’den çıkan MP4 klipleri yükle. Sonra timeline’da sıralayabilirsin.</div>
-  </div>
-
-  <div class="section" id="voices">
-    <div class="head"><div><h2>Karakter Ses Kütüphanesi</h2><div class="help">Her karaktere telifsiz hazır ses veya kendi ses dosyanı ekle.</div></div><button type="button" class="btn secondary" id="addCharacterBtn">+ Karakter</button></div>
-    <div id="characters"></div>
-  </div>
-
-  <div class="section" id="script">
-    <h2>Konuşma ve Altyazı</h2>
-    <label>Genel konuşma metni</label>
-    <textarea name="voiceText" placeholder="[Anlatıcı]\nBir zamanlar...\n\n[Karakter 1]\nHazır mısın?"></textarea>
-    <div class="help">Etiketler karakter adlarıyla aynı olmalı. Sahne başına özel konuşma için timeline kartlarını kullan.</div>
-    <label>Altyazı editörü</label>
-    <textarea name="subtitles" placeholder="00:00:01,000 --> 00:00:04,000\nMerhaba arkadaşlar..."></textarea>
-  </div>
-
-  <div class="section" id="audio">
-    <h2>Müzik</h2>
-    <label>Hazır müzik yükle</label>
-    <input name="music" type="file" accept="audio/mp3,audio/mpeg,audio/wav,audio/aac,audio/ogg"/>
-    <label>Müzik promptu</label>
-    <textarea name="musicPrompt" placeholder="Magical children's adventure soundtrack, instrumental only, no vocals."></textarea>
-    <div class="help">Bu sürüm müzik dosyasını kullanır. Prompt ileride müzik API’sine bağlanmak için kayıt edilir.</div>
-  </div>
-
-  <div class="section" id="advanced">
-    <h2>Render ve Entegrasyonlar</h2>
-    <div class="row">
-      <div><label>Çıktı oranı</label><select name="ratio"><option value="1280:720" selected>16:9 YouTube</option><option value="720:1280">9:16 Shorts</option></select></div>
-      <div><label>Geçiş</label><select name="transition"><option value="crossfade" selected>Crossfade</option><option value="fade">Fade</option><option value="none">Yok</option></select></div>
-    </div>
-    <div class="row">
-      <div><label>Konuşma ses seviyesi</label><select name="voiceVolume"><option value="1" selected>%100</option><option value="0.9">%90</option><option value="0.8">%80</option></select></div>
-      <div><label>Müzik ses seviyesi</label><select name="musicVolume"><option value="0.20">%20</option><option value="0.28" selected>%28</option><option value="0.35">%35</option></select></div>
-    </div>
-    <div class="row">
-      <div><label>Lip sync</label><select name="lipSyncEnabled"><option value="false" selected>Kapalı</option><option value="true">Açık</option></select></div>
-      <div><label>Lip sync sağlayıcı</label><select name="lipSyncProvider"><option value="none" selected>Yok</option><option value="syncso">Sync.so</option><option value="hedra">Hedra</option><option value="runway">Runway Lip Sync</option></select></div>
-    </div>
-    <div class="help">Lip sync alanları hazırdır; API anahtarı ve sağlayıcı endpointleri sonraki bağlantı aşamasında aktif edilir.</div>
-  </div>
-
-  <button class="btn full" type="submit" id="saveBtn">Projeyi Kaydet</button>
-</form>
-
-<div class="panel">
-  <section class="card">
-    <div class="head"><div><h2>Timeline</h2><div class="help">Klipleri sırala, trim değerlerini ve sahneye özel konuşmayı düzenle.</div></div><button type="button" class="btn secondary" id="refreshProjects">Projeler</button></div>
-    <div class="timeline"><div class="track" id="timelineTrack">Klip seçince timeline oluşur.</div></div>
+<div class="app">
+<aside class="sidebar">
+  <div class="logo"><div class="logoMark">AI</div><div class="brand"><b>Video Studio</b><span>Pro editor</span></div></div>
+  <nav class="nav">
+    <button class="active" data-screen="dashboard">📊 <span>Dashboard</span></button>
+    <button data-screen="editor">🎬 <span>Proje Editörü</span></button>
+    <button data-screen="voices">🎙️ <span>Ses Kütüphanesi</span></button>
+    <button data-screen="api">🔑 <span>API Ayarları</span></button>
+    <button data-screen="settings">⚙️ <span>Genel Ayarlar</span></button>
+  </nav>
+  <div class="statusDot"><span class="dot"></span>Çalışıyor</div>
+</aside>
+<main class="main">
+  <div class="topbar"><div class="title"><h1 id="pageTitle">Dashboard</h1><p>AI destekli otomatik montaj paneli: timeline, ses, altyazı, API ayarları, render.</p></div><button class="btn secondary" id="loadProjectsBtn">Projeleri Yenile</button></div>
+  <section class="screen active" id="dashboard"><div class="fullGrid"><div class="card"><h2>Render</h2><span class="badge">FFmpeg</span><p class="muted">Coolify container içinde çalışır.</p></div><div class="card"><h2>Ses</h2><span class="badge">OpenAI TTS</span><p class="muted">Sesleri dinleyip seçebilirsin.</p></div><div class="card"><h2>Lip Sync</h2><span class="badge">Hazır Alan</span><p class="muted">Provider API bağlanınca aktif olur.</p></div></div><div class="card" style="margin-top:14px"><h2>Son Projeler</h2><div id="dashProjects">Yükleniyor...</div></div></section>
+  <section class="screen" id="editor">
+    <form id="studioForm" class="grid">
+      <div class="card"><h2>Proje</h2><label>Proje adı</label><input name="projectName" placeholder="Yeni video projesi"/><label>Video klipleri</label><input id="videoFiles" name="videos" type="file" accept="video/mp4,video/webm,video/quicktime" multiple required/><p class="muted">Runway web arayüzünden çıkan MP4 klipleri yükle.</p><div class="head"><h2>Karakterler</h2><button type="button" class="btn secondary" id="addCharacterBtn">+ Karakter</button></div><div id="characters"></div></div>
+      <div class="card"><div class="head"><h2>Timeline</h2><div><button type="button" class="btn secondary" id="saveProjectBtn">Kaydet</button> <button type="button" class="btn" id="renderBtn" disabled>Render</button></div></div><div class="timeline"><div class="trackLabel">Video Track</div><div class="track" id="timelineTrack">Klip seçince timeline burada oluşur.</div></div><div class="statusBox" id="statusBox">Hazır.</div></div>
+      <div class="card"><h2>Önizleme</h2><div class="previewBox" id="previewBox">Video preview</div><label>Genel konuşma metni</label><textarea name="voiceText" placeholder="[Anlatıcı]\nBir zamanlar...\n\n[Karakter 1]\nHadi başlayalım!"></textarea><label>Altyazı editörü</label><textarea name="subtitles" placeholder="00:00:01,000 --> 00:00:04,000\nMerhaba..."></textarea><label>Hazır müzik</label><input name="music" type="file" accept="audio/*"/><label>Müzik promptu</label><textarea name="musicPrompt" placeholder="Cinematic magical adventure music, instrumental only."></textarea><div class="row"><div><label>Geçiş</label><select name="transition"><option value="crossfade">Crossfade</option><option value="fade">Fade</option><option value="none">Yok</option></select></div><div><label>Oran</label><select name="ratio"><option value="1280:720">16:9</option><option value="720:1280">9:16</option></select></div></div><div class="row"><div><label>Voice Vol</label><select name="voiceVolume"><option value="1">%100</option><option value="0.9">%90</option></select></div><div><label>Music Vol</label><select name="musicVolume"><option value="0.2">%20</option><option value="0.28" selected>%28</option><option value="0.35">%35</option></select></div></div><div class="row"><div><label>Lip Sync</label><select name="lipSyncEnabled"><option value="false">Kapalı</option><option value="true">Açık</option></select></div><div><label>Provider</label><select name="lipSyncProvider"><option value="none">Yok</option><option value="syncso">Sync.so</option><option value="hedra">Hedra</option><option value="runway">Runway</option></select></div></div></div>
+    </form>
   </section>
-
-  <section class="card">
-    <h2>Render</h2>
-    <div class="row">
-      <button class="btn" id="renderBtn" type="button" disabled>Final MP4 Render Et</button>
-      <button class="btn secondary" id="downloadBtn" type="button" disabled>Finali Aç</button>
-    </div>
-    <div class="status" id="status">Hazır.</div>
-  </section>
-
-  <section class="card">
-    <h2>Projeler</h2>
-    <div class="project-list" id="projectList">Henüz yüklenmedi.</div>
-  </section>
-</div>
-</section>
+  <section class="screen" id="voices"><div class="card"><h2>Ses Kütüphanesi</h2><p class="muted">Sesi seçmeden önce ▶ ile dinle. Önizleme OpenAI TTS kullanır.</p><div class="voiceList" id="voiceList"></div></div></section>
+  <section class="screen" id="api"><div class="settingsGrid"><div class="card"><h2>OpenAI</h2><label>API Key</label><input id="openaiKey" type="password" placeholder="sk-proj-..."/><div class="row" style="margin-top:10px"><button class="btn secondary" id="saveApiBtn">Kaydet</button><button class="btn" id="testOpenAiBtn">Test Et</button></div><div class="statusBox" id="apiStatus">Hazır.</div></div><div class="card"><h2>Diğer API'ler</h2><label>ElevenLabs</label><input id="elevenKey" type="password"/><label>Suno / Müzik API</label><input id="sunoKey" type="password"/><label>Runway</label><input id="runwayKey" type="password"/><label>Sync.so</label><input id="syncKey" type="password"/><label>Hedra</label><input id="hedraKey" type="password"/><button class="btn" id="saveOtherApiBtn" style="width:100%;margin-top:12px">API'leri Kaydet</button></div></div></section>
+  <section class="screen" id="settings"><div class="settingsGrid"><div class="card"><h2>Genel Ayarlar</h2><label>Kanal / Marka adı</label><input id="brandName"/><label>Varsayılan dil</label><select id="language"><option value="tr">Türkçe</option><option value="en">English</option></select><label>Varsayılan oran</label><select id="defaultRatio"><option value="1280:720">16:9</option><option value="720:1280">9:16</option></select><button class="btn" id="saveGeneralBtn" style="width:100%;margin-top:12px">Kaydet</button></div><div class="card"><h2>Render Ayarları</h2><label>Varsayılan geçiş</label><select id="defaultTransition"><option value="crossfade">Crossfade</option><option value="fade">Fade</option><option value="none">Yok</option></select><label>Varsayılan müzik sağlayıcı</label><select id="defaultMusicProvider"><option value="upload">MP3 yükleme</option><option value="suno">Suno</option><option value="mubert">Mubert</option></select><label>Varsayılan lip sync</label><select id="defaultLip"><option value="none">Kapalı</option><option value="syncso">Sync.so</option><option value="hedra">Hedra</option></select></div></div></section>
 </main>
-
+</div>
 <script>
-const VOICES=[["alloy","Alloy"],["ash","Ash"],["ballad","Ballad"],["coral","Coral"],["echo","Echo"],["fable","Fable"],["nova","Nova"],["onyx","Onyx"],["sage","Sage"],["shimmer","Shimmer"]];
-const form=document.getElementById("studioForm"), videoFiles=document.getElementById("videoFiles"), track=document.getElementById("timelineTrack"), statusBox=document.getElementById("status"), renderBtn=document.getElementById("renderBtn"), downloadBtn=document.getElementById("downloadBtn"), projectList=document.getElementById("projectList");
-let clips=[], currentProjectId=null, outputUrl=null, characterCount=0;
-
-document.querySelectorAll(".tab").forEach(b=>b.onclick=()=>{document.querySelectorAll(".tab").forEach(x=>x.classList.remove("active"));document.querySelectorAll(".section").forEach(x=>x.classList.remove("active"));b.classList.add("active");document.getElementById(b.dataset.tab).classList.add("active");});
-
+const VOICES=[["alloy","Alloy - dengeli"],["ash","Ash - sakin"],["ballad","Ballad - masalsı"],["coral","Coral - yumuşak"],["echo","Echo - tok"],["fable","Fable - anlatıcı"],["nova","Nova - canlı"],["onyx","Onyx - derin"],["sage","Sage - olgun"],["shimmer","Shimmer - parlak"]];
+let clips=[], currentProjectId=null, charCount=0;
+const $=id=>document.getElementById(id);
+document.querySelectorAll(".nav button").forEach(btn=>btn.onclick=()=>{document.querySelectorAll(".nav button").forEach(b=>b.classList.remove("active"));document.querySelectorAll(".screen").forEach(s=>s.classList.remove("active"));btn.classList.add("active");$(btn.dataset.screen).classList.add("active");$("pageTitle").textContent=btn.innerText.trim();});
 function voiceOpts(v="alloy"){return VOICES.map(([id,n])=>`<option value="${id}" ${id===v?"selected":""}>${n}</option>`).join("");}
-function addCharacter(name="", voice="alloy"){
- characterCount++; const id=characterCount; const div=document.createElement("div"); div.className="character"; div.dataset.id=id;
- div.innerHTML=`<div class="head"><b>Karakter ${id}</b><button type="button" class="btn danger remove">Sil</button></div>
- <div class="row"><div><label>Ad</label><input name="characterName_${id}" value="${name|| (id===1?"Anlatıcı":"Karakter "+(id-1))}"></div><div><label>Ses kaynağı</label><select name="voiceSource_${id}" class="voiceSource"><option value="openai" selected>Telifsiz hazır ses</option><option value="custom_file">Kendi ses dosyam</option></select></div></div>
- <div class="row openaiRow"><div><label>Hazır ses</label><select name="openaiVoice_${id}">${voiceOpts(voice)}</select></div><div><label>Ton notu</label><input name="voiceNote_${id}" placeholder="neşeli, ciddi, robotik..."></div></div>
- <div class="customRow" style="display:none"><label>Ses dosyası</label><input name="customVoice_${id}" type="file" accept="audio/mp3,audio/mpeg,audio/wav,audio/aac,audio/ogg"><div class="help">Voice cloning için sağlayıcı gerekir; dosya projeye kaydedilir.</div></div>`;
- div.querySelector(".remove").onclick=()=>div.remove();
- div.querySelector(".voiceSource").onchange=e=>{div.querySelector(".openaiRow").style.display=e.target.value==="openai"?"grid":"none";div.querySelector(".customRow").style.display=e.target.value==="custom_file"?"block":"none";};
- document.getElementById("characters").appendChild(div);
-}
-addCharacter("Anlatıcı","fable"); addCharacter("Karakter 1","nova"); addCharacter("Karakter 2","echo");
-document.getElementById("addCharacterBtn").onclick=()=>addCharacter();
-
-videoFiles.addEventListener("change",()=>{clips=[...videoFiles.files].map((file,i)=>({file,order:i,trimStart:0,trimEnd:0,sceneVoice:"",subtitle:""}));renderTimeline();});
-function renderTimeline(){
- if(!clips.length){track.innerHTML="Klip seçince timeline oluşur.";return;}
- track.innerHTML="";
- clips.forEach((c,i)=>{const url=URL.createObjectURL(c.file); const el=document.createElement("div"); el.className="clip";
-  el.innerHTML=`<video src="${url}" controls muted></video><div class="clip-title">Klip ${i+1}</div><div class="small">${c.file.name}</div>
-  <div class="row"><div><label>Başlangıç</label><input type="number" step="0.1" value="${c.trimStart}" data-i="${i}" data-k="trimStart"></div><div><label>Bitiş</label><input type="number" step="0.1" value="${c.trimEnd}" data-i="${i}" data-k="trimEnd"></div></div>
-  <label>Sahne konuşması</label><textarea data-i="${i}" data-k="sceneVoice" placeholder="[Karakter 1]\n...">${c.sceneVoice}</textarea>
-  <label>Altyazı</label><input data-i="${i}" data-k="subtitle" value="${c.subtitle}" placeholder="Bu sahnenin altyazısı">
-  <div class="clip-actions"><button type="button" data-act="left">←</button><button type="button" data-act="right">→</button></div>`;
-  el.querySelectorAll("input[data-i],textarea[data-i]").forEach(inp=>inp.oninput=()=>{clips[+inp.dataset.i][inp.dataset.k]=inp.value;});
-  el.querySelector('[data-act="left"]').onclick=()=>{if(i>0){[clips[i-1],clips[i]]=[clips[i],clips[i-1]];renderTimeline();}};
-  el.querySelector('[data-act="right"]').onclick=()=>{if(i<clips.length-1){[clips[i+1],clips[i]]=[clips[i],clips[i+1]];renderTimeline();}};
-  track.appendChild(el);
- });
-}
-function collectCharacters(){const out=[];document.querySelectorAll(".character").forEach(el=>{const id=el.dataset.id;const name=el.querySelector(`[name="characterName_${id}"]`).value.trim();if(!name)return;out.push({id,name,voiceSource:el.querySelector(`[name="voiceSource_${id}"]`).value,openaiVoice:el.querySelector(`[name="openaiVoice_${id}"]`)?.value||"alloy",voiceNote:el.querySelector(`[name="voiceNote_${id}"]`)?.value||"",customVoiceField:`customVoice_${id}`});});return out;}
-form.onsubmit=async e=>{e.preventDefault(); const fd=new FormData(form); fd.append("charactersJson",JSON.stringify(collectCharacters())); clips.forEach((c,i)=>{fd.set(`trimStart_${i}`,c.trimStart||0);fd.set(`trimEnd_${i}`,c.trimEnd||0);fd.set(`sceneVoice_${i}`,c.sceneVoice||"");fd.set(`subtitle_${i}`,c.subtitle||"");}); statusBox.textContent="Proje yükleniyor..."; try{const res=await fetch("/api/projects",{method:"POST",body:fd});const data=await res.json();if(!res.ok)throw new Error(data.error);currentProjectId=data.projectId;renderBtn.disabled=false;statusBox.textContent=JSON.stringify(data,null,2);loadProjects();}catch(err){statusBox.textContent="Hata: "+err.message;}};
-renderBtn.onclick=async()=>{if(!currentProjectId)return; renderBtn.disabled=true; statusBox.textContent="Render başladı. TTS ve FFmpeg çalışıyor..."; try{const res=await fetch(`/api/projects/${currentProjectId}/render`,{method:"POST"});const data=await res.json();if(!res.ok)throw new Error(data.error);outputUrl=data.outputUrl;downloadBtn.disabled=false;statusBox.textContent=JSON.stringify(data,null,2);loadProjects();}catch(err){statusBox.textContent="Render hatası: "+err.message;}finally{renderBtn.disabled=false;}};
-downloadBtn.onclick=()=>{if(outputUrl)window.open(outputUrl,"_blank");};
-async function loadProjects(){try{const r=await fetch("/api/projects");const d=await r.json();projectList.innerHTML=(d.projects||[]).map(p=>`<div class="project-item"><b>${p.name}</b><div class="small">${p.created_at}</div><span class="badge">${p.status}</span>${p.output_url?`<div><a style="color:#67e8f9" href="${p.output_url}" target="_blank">Finali aç</a></div>`:""}</div>`).join("")||"Proje yok.";}catch{projectList.innerHTML="Projeler alınamadı.";}}
-document.getElementById("refreshProjects").onclick=loadProjects; loadProjects();
+function addChar(name="",voice="alloy"){charCount++;const id=charCount;const div=document.createElement("div");div.className="character";div.dataset.id=id;div.innerHTML=`<div class="head"><b>Karakter ${id}</b><button type="button" class="btn danger remove">Sil</button></div><label>Ad</label><input name="characterName_${id}" value="${name||(id===1?"Anlatıcı":"Karakter "+(id-1))}"><div class="row"><div><label>Kaynak</label><select name="voiceSource_${id}"><option value="openai">Hazır ses</option><option value="custom_file">Kendi ses dosyam</option></select></div><div><label>OpenAI Ses</label><select name="openaiVoice_${id}">${voiceOpts(voice)}</select></div></div><label>Ton notu</label><input name="voiceNote_${id}" placeholder="neşeli, ciddi, çocuk, robotik..."><label>Kendi ses dosyası</label><input name="customVoice_${id}" type="file" accept="audio/*">`;div.querySelector(".remove").onclick=()=>div.remove();$("characters").appendChild(div);}
+addChar("Anlatıcı","fable");addChar("Karakter 1","nova");addChar("Karakter 2","echo");$("addCharacterBtn").onclick=()=>addChar();
+$("videoFiles").onchange=()=>{clips=[...$("videoFiles").files].map(file=>({file,trimStart:0,trimEnd:0,sceneVoice:"",subtitle:""}));renderTimeline();};
+function renderTimeline(){if(!clips.length){$("timelineTrack").textContent="Klip seçince timeline burada oluşur.";return;}$("timelineTrack").innerHTML="";clips.forEach((c,i)=>{const el=document.createElement("div");el.className="clip";el.innerHTML=`<video src="${URL.createObjectURL(c.file)}" controls muted></video><b>Klip ${i+1}</b><small>${c.file.name}</small><div class="row"><div><label>Başlangıç</label><input type="number" step="0.1" value="${c.trimStart}" data-k="trimStart"></div><div><label>Bitiş</label><input type="number" step="0.1" value="${c.trimEnd}" data-k="trimEnd"></div></div><label>Sahne sesi</label><textarea data-k="sceneVoice" placeholder="[Karakter]\n...">${c.sceneVoice}</textarea><label>Altyazı</label><input data-k="subtitle" value="${c.subtitle}"><div class="clipBtns"><button type="button" data-act="left">←</button><button type="button" data-act="right">→</button></div>`;el.querySelectorAll("[data-k]").forEach(inp=>inp.oninput=()=>c[inp.dataset.k]=inp.value);el.querySelector('[data-act="left"]').onclick=()=>{if(i>0){[clips[i-1],clips[i]]=[clips[i],clips[i-1]];renderTimeline();}};el.querySelector('[data-act="right"]').onclick=()=>{if(i<clips.length-1){[clips[i+1],clips[i]]=[clips[i],clips[i+1]];renderTimeline();}};$("timelineTrack").appendChild(el);});}
+function chars(){const out=[];document.querySelectorAll(".character").forEach(el=>{const id=el.dataset.id,name=el.querySelector(`[name="characterName_${id}"]`).value.trim();if(name)out.push({id,name,voiceSource:el.querySelector(`[name="voiceSource_${id}"]`).value,openaiVoice:el.querySelector(`[name="openaiVoice_${id}"]`).value,voiceNote:el.querySelector(`[name="voiceNote_${id}"]`).value,customVoiceField:`customVoice_${id}`});});return out;}
+$("studioForm").onsubmit=async e=>{e.preventDefault();const fd=new FormData($("studioForm"));fd.append("charactersJson",JSON.stringify(chars()));clips.forEach((c,i)=>{fd.set(`trimStart_${i}`,c.trimStart);fd.set(`trimEnd_${i}`,c.trimEnd);fd.set(`sceneVoice_${i}`,c.sceneVoice);fd.set(`subtitle_${i}`,c.subtitle);});$("statusBox").textContent="Proje kaydediliyor...";try{const r=await fetch("/api/projects",{method:"POST",body:fd});const d=await r.json();if(!r.ok)throw new Error(d.error);currentProjectId=d.projectId;$("renderBtn").disabled=false;$("statusBox").textContent=JSON.stringify(d,null,2);loadProjects();}catch(err){$("statusBox").textContent="Hata: "+err.message;}};
+$("saveProjectBtn").onclick=()=>$("studioForm").requestSubmit();
+$("renderBtn").onclick=async()=>{if(!currentProjectId)return;$("statusBox").textContent="Render başlıyor...";try{const r=await fetch(`/api/projects/${currentProjectId}/render`,{method:"POST"});const d=await r.json();if(!r.ok)throw new Error(d.error);$("previewBox").innerHTML=`<video src="${d.outputUrl}" controls style="width:100%;height:100%;border-radius:14px"></video>`;$("statusBox").textContent=JSON.stringify(d,null,2);loadProjects();}catch(err){$("statusBox").textContent="Render hatası: "+err.message;}};
+async function loadProjects(){try{const r=await fetch("/api/projects");const d=await r.json();const html=(d.projects||[]).map(p=>`<div class="projectItem"><div class="head"><b>${p.name}</b><span class="badge">${p.status}</span></div><div class="muted">${p.created_at}</div>${p.output_url?`<a style="color:#67e8f9" href="${p.output_url}" target="_blank">Finali aç</a>`:""}</div>`).join("")||"Proje yok.";$("dashProjects").innerHTML=html;}catch(e){$("dashProjects").textContent="Projeler alınamadı.";}}
+$("loadProjectsBtn").onclick=loadProjects;
+function renderVoices(){ $("voiceList").innerHTML=VOICES.map(([id,name])=>`<div class="voiceRow"><span>${name}</span><button class="btn secondary" onclick="previewVoice('${id}')">▶ Dinle</button><button class="btn secondary" onclick="alert('Bu sesi karakter ayarından seç: ${id}')">Seç</button></div>`).join("");}
+window.previewVoice=async(v)=>{try{const r=await fetch("/api/tts/preview",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({voice:v,text:"Merhaba. Bu sesi AI Video Studio için önizliyorsunuz."})});const d=await r.json();if(!r.ok)throw new Error(d.error);new Audio(d.url).play();}catch(e){alert(e.message);}};
+renderVoices();loadProjects();
+async function saveSettings(obj){const r=await fetch("/api/settings",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(obj)});return r.json();}
+$("saveApiBtn").onclick=async()=>{$("apiStatus").textContent="Kaydediliyor...";await saveSettings({"api.openai.key":$("openaiKey").value});$("apiStatus").textContent="OpenAI kaydedildi.";}
+$("saveOtherApiBtn").onclick=async()=>{await saveSettings({"api.elevenlabs.key":$("elevenKey").value,"api.suno.key":$("sunoKey").value,"api.runway.key":$("runwayKey").value,"api.syncso.key":$("syncKey").value,"api.hedra.key":$("hedraKey").value});alert("API'ler kaydedildi.");}
+$("testOpenAiBtn").onclick=async()=>{const r=await fetch("/api/test/openai",{method:"POST"});const d=await r.json();$("apiStatus").textContent=JSON.stringify(d,null,2);}
+$("saveGeneralBtn").onclick=async()=>{await saveSettings({"brand.name":$("brandName").value,"language":$("language").value,"default.ratio":$("defaultRatio").value,"default.transition":$("defaultTransition").value,"default.musicProvider":$("defaultMusicProvider").value,"default.lipSyncProvider":$("defaultLip").value});alert("Genel ayarlar kaydedildi.");}
 </script>
-</body>
-</html>
+</body></html>
