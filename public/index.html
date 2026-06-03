@@ -1,316 +1,161 @@
 <!DOCTYPE html>
 <html lang="tr">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>AI Video Birleştirici</title>
-  <style>
-    :root{--bg:#0b1020;--card:#111827;--card2:#172033;--text:#f8fafc;--muted:#94a3b8;--line:#263244;--p:#7c3aed;--c:#06b6d4}
-    *{box-sizing:border-box}
-    body{margin:0;font-family:Arial,Helvetica,sans-serif;background:radial-gradient(circle at top left,rgba(124,58,237,.28),transparent 35%),radial-gradient(circle at top right,rgba(6,182,212,.16),transparent 35%),var(--bg);color:var(--text)}
-    .wrap{width:min(1120px,94vw);margin:28px auto 60px}
-    .top{display:flex;justify-content:space-between;gap:18px;align-items:flex-start;margin-bottom:22px}
-    h1{margin:0 0 8px;font-size:clamp(30px,5vw,52px);letter-spacing:-.05em;line-height:1.02}
-    .lead{margin:0;color:var(--muted);line-height:1.55;max-width:760px}
-    .pill{border:1px solid rgba(124,58,237,.45);background:rgba(124,58,237,.16);color:#ddd6fe;padding:10px 13px;border-radius:999px;font-size:13px;white-space:nowrap}
-    .grid{display:grid;grid-template-columns:1.06fr .94fr;gap:18px}
-    .card{background:rgba(17,24,39,.94);border:1px solid var(--line);border-radius:24px;padding:22px;box-shadow:0 24px 70px rgba(0,0,0,.28)}
-    h2{margin:0 0 18px;font-size:22px}
-    h3{margin:0 0 12px;font-size:17px;color:#e2e8f0}
-    label{display:block;margin:14px 0 7px;color:#dbeafe;font-size:14px;font-weight:700}
-    textarea,input,select{width:100%;background:var(--card2);border:1px solid var(--line);color:var(--text);border-radius:15px;padding:13px;outline:none;font-size:15px}
-    textarea{min-height:135px;resize:vertical;line-height:1.55}
-    input[type=file]{padding:11px;color:var(--muted)}
-    .row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
-    .row3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px}
-    .help{color:var(--muted);font-size:12px;line-height:1.45;margin-top:6px}
-    .box{border:1px solid var(--line);background:rgba(23,32,51,.55);border-radius:18px;padding:14px;margin-top:14px}
-    .character{border:1px solid var(--line);background:#0f172a;border-radius:18px;padding:14px;margin-top:12px}
-    .character-head{display:flex;justify-content:space-between;gap:12px;align-items:center;margin-bottom:8px}
-    .character-title{font-weight:900;color:#e2e8f0}
-    .small-btn{border:1px solid var(--line);background:#1e293b;color:#e2e8f0;border-radius:999px;padding:8px 11px;cursor:pointer;font-weight:700}
-    .small-btn.danger{color:#fecaca;border-color:rgba(239,68,68,.35);background:rgba(239,68,68,.12)}
-    .btn{width:100%;margin-top:20px;border:0;border-radius:18px;padding:16px 18px;color:white;font-size:17px;font-weight:900;cursor:pointer;background:linear-gradient(135deg,var(--p),var(--c))}
-    .btn:disabled{opacity:.55}
-    .preview{min-height:260px;background:#070b14;border:1px dashed #334155;border-radius:18px;padding:12px;color:var(--muted);overflow:hidden}
-    .clips{display:grid;grid-template-columns:1fr;gap:10px}
-    .clip{display:flex;gap:10px;align-items:center;border:1px solid var(--line);border-radius:14px;padding:10px;background:rgba(23,32,51,.55)}
-    .clip video{width:140px;max-width:40%;border-radius:10px;background:#000}
-    .clip strong{display:block;color:#e2e8f0;margin-bottom:4px}
-    .clip span{font-size:12px;color:var(--muted);word-break:break-all}
-    .status{margin-top:14px;background:#070b14;border:1px solid var(--line);border-radius:16px;padding:14px;min-height:120px;color:var(--muted);white-space:pre-wrap;line-height:1.55;overflow:auto}
-    .steps{display:grid;gap:10px;margin-top:14px}
-    .step{display:flex;gap:10px;color:var(--muted);font-size:13px;line-height:1.45}
-    .num{width:24px;height:24px;display:grid;place-items:center;border-radius:999px;background:rgba(124,58,237,.18);color:#ddd6fe;flex:0 0 auto;font-weight:900}
-    .result a{color:#67e8f9;word-break:break-all}
-    @media(max-width:900px){.grid,.row,.row3{grid-template-columns:1fr}.top{display:block}.pill{display:inline-block;margin-top:14px}.clip{display:block}.clip video{width:100%;max-width:100%;margin-bottom:8px}}
-  </style>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>AI Video Studio</title>
+<style>
+:root{--bg:#08111f;--card:#111827;--card2:#172033;--line:#263244;--text:#f8fafc;--muted:#94a3b8;--p:#7c3aed;--c:#06b6d4;--ok:#22c55e;--bad:#ef4444}
+*{box-sizing:border-box}body{margin:0;font-family:Arial,Helvetica,sans-serif;background:radial-gradient(circle at top left,rgba(124,58,237,.28),transparent 35%),radial-gradient(circle at top right,rgba(6,182,212,.16),transparent 35%),var(--bg);color:var(--text)}
+.wrap{width:min(1320px,96vw);margin:24px auto 60px}.top{display:flex;justify-content:space-between;gap:18px;align-items:flex-start;margin-bottom:18px}
+h1{margin:0 0 8px;font-size:clamp(30px,5vw,52px);letter-spacing:-.05em;line-height:1.02}.lead{margin:0;color:var(--muted);line-height:1.55;max-width:850px}.pill{border:1px solid rgba(124,58,237,.45);background:rgba(124,58,237,.16);color:#ddd6fe;padding:10px 13px;border-radius:999px;font-size:13px;white-space:nowrap}
+.grid{display:grid;grid-template-columns:400px 1fr;gap:16px}.card{background:rgba(17,24,39,.94);border:1px solid var(--line);border-radius:24px;padding:18px;box-shadow:0 24px 70px rgba(0,0,0,.28)}
+h2{margin:0 0 14px;font-size:21px}h3{margin:0 0 10px;font-size:16px;color:#e2e8f0}label{display:block;margin:13px 0 7px;color:#dbeafe;font-size:14px;font-weight:700}
+textarea,input,select{width:100%;background:var(--card2);border:1px solid var(--line);color:var(--text);border-radius:14px;padding:12px;outline:none;font-size:14px}textarea{min-height:110px;resize:vertical;line-height:1.5}input[type=file]{padding:10px;color:var(--muted)}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:10px}.row3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px}.help{color:var(--muted);font-size:12px;line-height:1.45;margin-top:5px}
+.btn{border:0;border-radius:15px;padding:13px 15px;color:white;font-weight:900;cursor:pointer;background:linear-gradient(135deg,var(--p),var(--c));font-size:15px}.btn.secondary{background:#1e293b;border:1px solid var(--line)}.btn.danger{background:rgba(239,68,68,.2);border:1px solid rgba(239,68,68,.4);color:#fecaca}.btn.full{width:100%;margin-top:16px}
+.panel{display:grid;gap:14px}.tabs{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}.tab{border:1px solid var(--line);background:#101a2c;color:#cbd5e1;padding:9px 11px;border-radius:999px;cursor:pointer;font-weight:700}.tab.active{background:rgba(124,58,237,.24);color:#fff;border-color:rgba(124,58,237,.55)}
+.section{display:none}.section.active{display:block}.character,.clip-card{border:1px solid var(--line);background:#0f172a;border-radius:16px;padding:12px;margin-top:10px}.head{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:8px}.small{font-size:12px;color:var(--muted)}
+.timeline{min-height:260px;background:#070b14;border:1px solid var(--line);border-radius:20px;padding:14px;overflow-x:auto}.track{display:flex;gap:12px;align-items:stretch;min-height:170px}.clip{width:210px;min-width:210px;border:1px solid var(--line);border-radius:16px;background:#111827;padding:10px;position:relative}.clip video{width:100%;aspect-ratio:16/9;background:#000;border-radius:11px}.clip-title{font-weight:800;margin:7px 0 5px;color:#e2e8f0;font-size:13px}.clip-actions{display:flex;gap:6px;margin-top:8px}.clip-actions button{flex:1;border:1px solid var(--line);background:#1e293b;color:#e2e8f0;border-radius:10px;padding:7px;cursor:pointer}
+.status{margin-top:12px;background:#070b14;border:1px solid var(--line);border-radius:16px;padding:13px;min-height:110px;color:var(--muted);white-space:pre-wrap;line-height:1.5;overflow:auto}.project-list{display:grid;gap:8px}.project-item{border:1px solid var(--line);background:#0f172a;border-radius:14px;padding:10px;color:#cbd5e1}.badge{display:inline-block;border-radius:999px;padding:4px 8px;background:rgba(6,182,212,.15);color:#a5f3fc;font-size:12px;margin-top:6px}
+@media(max-width:980px){.grid{grid-template-columns:1fr}.row,.row3{grid-template-columns:1fr}.top{display:block}.pill{display:inline-block;margin-top:12px}}
+</style>
 </head>
 <body>
 <main class="wrap">
-  <section class="top">
-    <div>
-      <h1>AI Video Birleştirici</h1>
-      <p class="lead">Runway’de hazırladığın MP4 klipleri yükle. Karakter seslerini seç, konuşma metnini yaz. Sistem OpenAI TTS ve montaj sürecini n8n’e gönderir.</p>
+<section class="top">
+  <div><h1>AI Video Studio</h1><p class="lead">Runway’de ürettiğin klipleri yükle; timeline’da sırala, trim gir, sahne sesi ve altyazı ekle. Karakter sesleri, OpenAI TTS, müzik ve FFmpeg render tek sistemde.</p></div>
+  <div class="pill">Coolify · SQLite · FFmpeg · OpenAI TTS</div>
+</section>
+
+<section class="grid">
+<form id="studioForm" class="card">
+  <div class="tabs">
+    <button type="button" class="tab active" data-tab="project">Proje</button>
+    <button type="button" class="tab" data-tab="voices">Sesler</button>
+    <button type="button" class="tab" data-tab="script">Metin</button>
+    <button type="button" class="tab" data-tab="audio">Müzik</button>
+    <button type="button" class="tab" data-tab="advanced">Render</button>
+  </div>
+
+  <div class="section active" id="project">
+    <h2>Proje ve Klipler</h2>
+    <label>Proje adı</label>
+    <input name="projectName" placeholder="Yıldız Kristali Macerası"/>
+    <label>Video klipleri</label>
+    <input id="videoFiles" name="videos" type="file" accept="video/mp4,video/webm,video/quicktime" multiple required/>
+    <div class="help">Runway’den çıkan MP4 klipleri yükle. Sonra timeline’da sıralayabilirsin.</div>
+  </div>
+
+  <div class="section" id="voices">
+    <div class="head"><div><h2>Karakter Ses Kütüphanesi</h2><div class="help">Her karaktere telifsiz hazır ses veya kendi ses dosyanı ekle.</div></div><button type="button" class="btn secondary" id="addCharacterBtn">+ Karakter</button></div>
+    <div id="characters"></div>
+  </div>
+
+  <div class="section" id="script">
+    <h2>Konuşma ve Altyazı</h2>
+    <label>Genel konuşma metni</label>
+    <textarea name="voiceText" placeholder="[Anlatıcı]\nBir zamanlar...\n\n[Karakter 1]\nHazır mısın?"></textarea>
+    <div class="help">Etiketler karakter adlarıyla aynı olmalı. Sahne başına özel konuşma için timeline kartlarını kullan.</div>
+    <label>Altyazı editörü</label>
+    <textarea name="subtitles" placeholder="00:00:01,000 --> 00:00:04,000\nMerhaba arkadaşlar..."></textarea>
+  </div>
+
+  <div class="section" id="audio">
+    <h2>Müzik</h2>
+    <label>Hazır müzik yükle</label>
+    <input name="music" type="file" accept="audio/mp3,audio/mpeg,audio/wav,audio/aac,audio/ogg"/>
+    <label>Müzik promptu</label>
+    <textarea name="musicPrompt" placeholder="Magical children's adventure soundtrack, instrumental only, no vocals."></textarea>
+    <div class="help">Bu sürüm müzik dosyasını kullanır. Prompt ileride müzik API’sine bağlanmak için kayıt edilir.</div>
+  </div>
+
+  <div class="section" id="advanced">
+    <h2>Render ve Entegrasyonlar</h2>
+    <div class="row">
+      <div><label>Çıktı oranı</label><select name="ratio"><option value="1280:720" selected>16:9 YouTube</option><option value="720:1280">9:16 Shorts</option></select></div>
+      <div><label>Geçiş</label><select name="transition"><option value="crossfade" selected>Crossfade</option><option value="fade">Fade</option><option value="none">Yok</option></select></div>
     </div>
-    <div class="pill">Video upload · Karakter ses sistemi</div>
+    <div class="row">
+      <div><label>Konuşma ses seviyesi</label><select name="voiceVolume"><option value="1" selected>%100</option><option value="0.9">%90</option><option value="0.8">%80</option></select></div>
+      <div><label>Müzik ses seviyesi</label><select name="musicVolume"><option value="0.20">%20</option><option value="0.28" selected>%28</option><option value="0.35">%35</option></select></div>
+    </div>
+    <div class="row">
+      <div><label>Lip sync</label><select name="lipSyncEnabled"><option value="false" selected>Kapalı</option><option value="true">Açık</option></select></div>
+      <div><label>Lip sync sağlayıcı</label><select name="lipSyncProvider"><option value="none" selected>Yok</option><option value="syncso">Sync.so</option><option value="hedra">Hedra</option><option value="runway">Runway Lip Sync</option></select></div>
+    </div>
+    <div class="help">Lip sync alanları hazırdır; API anahtarı ve sağlayıcı endpointleri sonraki bağlantı aşamasında aktif edilir.</div>
+  </div>
+
+  <button class="btn full" type="submit" id="saveBtn">Projeyi Kaydet</button>
+</form>
+
+<div class="panel">
+  <section class="card">
+    <div class="head"><div><h2>Timeline</h2><div class="help">Klipleri sırala, trim değerlerini ve sahneye özel konuşmayı düzenle.</div></div><button type="button" class="btn secondary" id="refreshProjects">Projeler</button></div>
+    <div class="timeline"><div class="track" id="timelineTrack">Klip seçince timeline oluşur.</div></div>
   </section>
 
-  <section class="grid">
-    <form id="videoForm" class="card">
-      <h2>Montaj Bilgileri</h2>
-
-      <label>Runway video klipleri</label>
-      <input id="videoFiles" name="videos" type="file" accept="video/mp4,video/webm,video/quicktime" multiple required />
-      <div class="help">Klipleri sırayla seç: 01, 02, 03... Dosya sırası final videoda önemlidir.</div>
-
-      <section class="box">
-        <div style="display:flex;justify-content:space-between;gap:12px;align-items:center;">
-          <div>
-            <h3>Karakter Sesleri</h3>
-            <div class="help">Her karakter için telifsiz hazır ses seçebilir veya kendi ses dosyanı ekleyebilirsin.</div>
-          </div>
-          <button type="button" class="small-btn" id="addCharacterBtn">+ Karakter</button>
-        </div>
-
-        <div id="characters"></div>
-      </section>
-
-      <label>Konuşma metni</label>
-      <textarea name="voiceText" required placeholder="[Anlatıcı]
-Bir zamanlar uzak bir vadide...
-
-[Karakter 1]
-Bugün büyük bir maceraya çıkıyoruz!
-
-[Karakter 2]
-Hazırım, hadi başlayalım!"></textarea>
-      <div class="help">Etiketler karakter adlarıyla aynı olmalı. Örn: [Anlatıcı], [Karakter 1], [Kedi], [Robot].</div>
-
-      <label>Müzik promptu</label>
-      <textarea name="musicPrompt" placeholder="Magical children's adventure soundtrack, warm orchestral music, gentle piano, celesta, magical bells, instrumental only, no vocals."></textarea>
-
-      <label>Hazır müzik yükle</label>
-      <input name="music" type="file" accept="audio/mp3,audio/mpeg,audio/wav,audio/aac,audio/ogg" />
-      <div class="help">MP3 yüklersen prompt yerine bu müzik final videoda kullanılır.</div>
-
-      <div class="row">
-        <div>
-          <label>Çıktı oranı</label>
-          <select name="ratio">
-            <option value="1280:720" selected>16:9 YouTube</option>
-            <option value="720:1280">9:16 Shorts</option>
-          </select>
-        </div>
-        <div>
-          <label>Geçiş</label>
-          <select name="transition">
-            <option value="crossfade" selected>Crossfade</option>
-            <option value="fade">Fade</option>
-            <option value="none">Geçiş yok</option>
-          </select>
-        </div>
-      </div>
-
-      <div class="row">
-        <div>
-          <label>Konuşma ses seviyesi</label>
-          <select name="voiceVolume">
-            <option value="1" selected>%100</option>
-            <option value="0.9">%90</option>
-            <option value="0.8">%80</option>
-          </select>
-        </div>
-        <div>
-          <label>Müzik ses seviyesi</label>
-          <select name="musicVolume">
-            <option value="0.20">%20</option>
-            <option value="0.28" selected>%28</option>
-            <option value="0.35">%35</option>
-          </select>
-        </div>
-      </div>
-
-      <input type="hidden" name="sourceType" value="uploaded_videos">
-      <input type="hidden" name="useRunwayApi" value="false">
-      <input type="hidden" name="ttsProvider" value="openai">
-      <input type="hidden" name="renderMode" value="merge_uploaded_videos">
-      <input type="hidden" name="autoRender" value="true">
-
-      <button class="btn" id="submitBtn" type="submit">Videoyu Birleştir</button>
-    </form>
-
-    <aside class="card">
-      <h2>Klip Önizleme</h2>
-      <div class="preview" id="preview">Videoları seçince burada görünür.</div>
-
-      <div class="steps">
-        <div class="step"><span class="num">1</span><span>Runway’den çıkan MP4 klipleri yükle.</span></div>
-        <div class="step"><span class="num">2</span><span>Karakterleri ve seslerini tanımla.</span></div>
-        <div class="step"><span class="num">3</span><span>Konuşma metnini etiketli yaz.</span></div>
-      </div>
-
-      <h2 style="margin-top:22px">Durum</h2>
-      <div class="status" id="status">Hazır.</div>
-      <div class="result" id="result"></div>
-    </aside>
+  <section class="card">
+    <h2>Render</h2>
+    <div class="row">
+      <button class="btn" id="renderBtn" type="button" disabled>Final MP4 Render Et</button>
+      <button class="btn secondary" id="downloadBtn" type="button" disabled>Finali Aç</button>
+    </div>
+    <div class="status" id="status">Hazır.</div>
   </section>
+
+  <section class="card">
+    <h2>Projeler</h2>
+    <div class="project-list" id="projectList">Henüz yüklenmedi.</div>
+  </section>
+</div>
+</section>
 </main>
 
 <script>
-const OPENAI_VOICES = [
-  ["alloy","Alloy - Dengeli"],
-  ["ash","Ash - Sakin"],
-  ["ballad","Ballad - Masalsı"],
-  ["coral","Coral - Yumuşak"],
-  ["echo","Echo - Tok"],
-  ["fable","Fable - Hikâye anlatımı"],
-  ["nova","Nova - Canlı"],
-  ["onyx","Onyx - Derin"],
-  ["sage","Sage - Olgun"],
-  ["shimmer","Shimmer - Parlak"]
-];
+const VOICES=[["alloy","Alloy"],["ash","Ash"],["ballad","Ballad"],["coral","Coral"],["echo","Echo"],["fable","Fable"],["nova","Nova"],["onyx","Onyx"],["sage","Sage"],["shimmer","Shimmer"]];
+const form=document.getElementById("studioForm"), videoFiles=document.getElementById("videoFiles"), track=document.getElementById("timelineTrack"), statusBox=document.getElementById("status"), renderBtn=document.getElementById("renderBtn"), downloadBtn=document.getElementById("downloadBtn"), projectList=document.getElementById("projectList");
+let clips=[], currentProjectId=null, outputUrl=null, characterCount=0;
 
-const form=document.getElementById("videoForm");
-const videoFiles=document.getElementById("videoFiles");
-const preview=document.getElementById("preview");
-const statusBox=document.getElementById("status");
-const resultBox=document.getElementById("result");
-const submitBtn=document.getElementById("submitBtn");
-const charactersBox=document.getElementById("characters");
-const addCharacterBtn=document.getElementById("addCharacterBtn");
+document.querySelectorAll(".tab").forEach(b=>b.onclick=()=>{document.querySelectorAll(".tab").forEach(x=>x.classList.remove("active"));document.querySelectorAll(".section").forEach(x=>x.classList.remove("active"));b.classList.add("active");document.getElementById(b.dataset.tab).classList.add("active");});
 
-let characterCount = 0;
-
-function voiceOptions(selected="alloy"){
-  return OPENAI_VOICES.map(([v,label]) => `<option value="${v}" ${v===selected?"selected":""}>${label}</option>`).join("");
+function voiceOpts(v="alloy"){return VOICES.map(([id,n])=>`<option value="${id}" ${id===v?"selected":""}>${n}</option>`).join("");}
+function addCharacter(name="", voice="alloy"){
+ characterCount++; const id=characterCount; const div=document.createElement("div"); div.className="character"; div.dataset.id=id;
+ div.innerHTML=`<div class="head"><b>Karakter ${id}</b><button type="button" class="btn danger remove">Sil</button></div>
+ <div class="row"><div><label>Ad</label><input name="characterName_${id}" value="${name|| (id===1?"Anlatıcı":"Karakter "+(id-1))}"></div><div><label>Ses kaynağı</label><select name="voiceSource_${id}" class="voiceSource"><option value="openai" selected>Telifsiz hazır ses</option><option value="custom_file">Kendi ses dosyam</option></select></div></div>
+ <div class="row openaiRow"><div><label>Hazır ses</label><select name="openaiVoice_${id}">${voiceOpts(voice)}</select></div><div><label>Ton notu</label><input name="voiceNote_${id}" placeholder="neşeli, ciddi, robotik..."></div></div>
+ <div class="customRow" style="display:none"><label>Ses dosyası</label><input name="customVoice_${id}" type="file" accept="audio/mp3,audio/mpeg,audio/wav,audio/aac,audio/ogg"><div class="help">Voice cloning için sağlayıcı gerekir; dosya projeye kaydedilir.</div></div>`;
+ div.querySelector(".remove").onclick=()=>div.remove();
+ div.querySelector(".voiceSource").onchange=e=>{div.querySelector(".openaiRow").style.display=e.target.value==="openai"?"grid":"none";div.querySelector(".customRow").style.display=e.target.value==="custom_file"?"block":"none";};
+ document.getElementById("characters").appendChild(div);
 }
+addCharacter("Anlatıcı","fable"); addCharacter("Karakter 1","nova"); addCharacter("Karakter 2","echo");
+document.getElementById("addCharacterBtn").onclick=()=>addCharacter();
 
-function addCharacter(defaultName="", defaultVoice="alloy"){
-  characterCount++;
-  const id = characterCount;
-  const el = document.createElement("div");
-  el.className = "character";
-  el.dataset.characterId = id;
-  el.innerHTML = `
-    <div class="character-head">
-      <div class="character-title">Karakter ${id}</div>
-      <button type="button" class="small-btn danger remove-character">Sil</button>
-    </div>
-
-    <div class="row">
-      <div>
-        <label>Karakter adı</label>
-        <input name="characterName_${id}" value="${defaultName || (id===1 ? "Anlatıcı" : "Karakter " + (id-1))}" placeholder="Anlatıcı, Kedi, Robot, Prenses..." />
-      </div>
-      <div>
-        <label>Ses kaynağı</label>
-        <select name="voiceSource_${id}" class="voice-source">
-          <option value="openai" selected>Telifsiz hazır ses</option>
-          <option value="custom_file">Kendi ses dosyam</option>
-        </select>
-      </div>
-    </div>
-
-    <div class="row openai-voice-row">
-      <div>
-        <label>Telifsiz ses</label>
-        <select name="openaiVoice_${id}">
-          ${voiceOptions(defaultVoice)}
-        </select>
-      </div>
-      <div>
-        <label>Ses tonu notu</label>
-        <input name="voiceNote_${id}" placeholder="Neşeli, robotik, yaşlı, sakin, enerjik..." />
-      </div>
-    </div>
-
-    <div class="custom-voice-row" style="display:none">
-      <label>Kendi ses dosyan</label>
-      <input name="customVoice_${id}" type="file" accept="audio/mp3,audio/mpeg,audio/wav,audio/aac,audio/ogg" />
-      <div class="help">Bu dosya n8n’e gönderilir. Yeni cümleleri bu sesle okutmak için ayrıca voice-cloning servisi gerekir.</div>
-    </div>
-  `;
-
-  el.querySelector(".remove-character").addEventListener("click", () => el.remove());
-
-  el.querySelector(".voice-source").addEventListener("change", (e) => {
-    const openaiRow = el.querySelector(".openai-voice-row");
-    const customRow = el.querySelector(".custom-voice-row");
-    if(e.target.value === "custom_file"){
-      openaiRow.style.display = "none";
-      customRow.style.display = "block";
-    }else{
-      openaiRow.style.display = "grid";
-      customRow.style.display = "none";
-    }
-  });
-
-  charactersBox.appendChild(el);
+videoFiles.addEventListener("change",()=>{clips=[...videoFiles.files].map((file,i)=>({file,order:i,trimStart:0,trimEnd:0,sceneVoice:"",subtitle:""}));renderTimeline();});
+function renderTimeline(){
+ if(!clips.length){track.innerHTML="Klip seçince timeline oluşur.";return;}
+ track.innerHTML="";
+ clips.forEach((c,i)=>{const url=URL.createObjectURL(c.file); const el=document.createElement("div"); el.className="clip";
+  el.innerHTML=`<video src="${url}" controls muted></video><div class="clip-title">Klip ${i+1}</div><div class="small">${c.file.name}</div>
+  <div class="row"><div><label>Başlangıç</label><input type="number" step="0.1" value="${c.trimStart}" data-i="${i}" data-k="trimStart"></div><div><label>Bitiş</label><input type="number" step="0.1" value="${c.trimEnd}" data-i="${i}" data-k="trimEnd"></div></div>
+  <label>Sahne konuşması</label><textarea data-i="${i}" data-k="sceneVoice" placeholder="[Karakter 1]\n...">${c.sceneVoice}</textarea>
+  <label>Altyazı</label><input data-i="${i}" data-k="subtitle" value="${c.subtitle}" placeholder="Bu sahnenin altyazısı">
+  <div class="clip-actions"><button type="button" data-act="left">←</button><button type="button" data-act="right">→</button></div>`;
+  el.querySelectorAll("input[data-i],textarea[data-i]").forEach(inp=>inp.oninput=()=>{clips[+inp.dataset.i][inp.dataset.k]=inp.value;});
+  el.querySelector('[data-act="left"]').onclick=()=>{if(i>0){[clips[i-1],clips[i]]=[clips[i],clips[i-1]];renderTimeline();}};
+  el.querySelector('[data-act="right"]').onclick=()=>{if(i<clips.length-1){[clips[i+1],clips[i]]=[clips[i],clips[i+1]];renderTimeline();}};
+  track.appendChild(el);
+ });
 }
-
-addCharacter("Anlatıcı", "fable");
-addCharacter("Karakter 1", "nova");
-addCharacter("Karakter 2", "echo");
-
-addCharacterBtn.addEventListener("click", () => addCharacter());
-
-videoFiles.addEventListener("change",()=>{
-  const files=[...videoFiles.files];
-  if(!files.length){preview.innerHTML="Videoları seçince burada görünür.";return;}
-  preview.innerHTML='<div class="clips">'+files.slice(0,30).map((file,i)=>`
-    <div class="clip">
-      <video src="${URL.createObjectURL(file)}" controls muted></video>
-      <div><strong>Klip ${i+1}</strong><span>${file.name}</span></div>
-    </div>
-  `).join("")+'</div>';
-});
-
-function collectCharacters(){
-  const chars = [];
-  document.querySelectorAll(".character").forEach((el) => {
-    const id = el.dataset.characterId;
-    const name = el.querySelector(`[name="characterName_${id}"]`)?.value?.trim();
-    if(!name) return;
-    chars.push({
-      id,
-      name,
-      voiceSource: el.querySelector(`[name="voiceSource_${id}"]`)?.value || "openai",
-      openaiVoice: el.querySelector(`[name="openaiVoice_${id}"]`)?.value || "alloy",
-      voiceNote: el.querySelector(`[name="voiceNote_${id}"]`)?.value || "",
-      customVoiceField: `customVoice_${id}`
-    });
-  });
-  return chars;
-}
-
-form.addEventListener("submit",async(e)=>{
-  e.preventDefault();
-  resultBox.innerHTML="";
-  const fd=new FormData(form);
-  const characters = collectCharacters();
-
-  fd.append("clipCount", String(videoFiles.files.length));
-  fd.append("charactersJson", JSON.stringify(characters));
-  fd.append("musicMode", fd.get("music") && fd.get("music").size ? "upload" : "prompt");
-
-  submitBtn.disabled=true;
-  statusBox.textContent=`İşlem başlatılıyor...\nVideo klip sayısı: ${videoFiles.files.length}\nKarakter sayısı: ${characters.length}\nRunway API: Kapalı\nSeslendirme: OpenAI TTS / Custom voice payload`;
-
-  try{
-    const res=await fetch("/api/create-video",{method:"POST",body:fd});
-    const data=await res.json().catch(()=>({}));
-    if(!res.ok){throw new Error(data.error || data.n8n?.message || "İstek başarısız.");}
-    statusBox.textContent=JSON.stringify(data,null,2);
-    const videoUrl=data.videoUrl || data.renderUrl || data.n8n?.videoUrl || data.n8n?.renderUrl || data.n8n?.output;
-    if(videoUrl){resultBox.innerHTML=`<p><a href="${videoUrl}" target="_blank" rel="noreferrer">Final videoyu aç / indir</a></p>`;}
-    else{resultBox.innerHTML=`<p style="color:#94a3b8">İşlem n8n'e gönderildi. Sonucu n8n execution ekranından kontrol et.</p>`;}
-  }catch(err){
-    statusBox.textContent="Hata: "+err.message+"\\n\\nn8n workflow aktif mi, webhook URL doğru mu ve OPENAI_API_KEY ekli mi kontrol et.";
-  }finally{
-    submitBtn.disabled=false;
-  }
-});
+function collectCharacters(){const out=[];document.querySelectorAll(".character").forEach(el=>{const id=el.dataset.id;const name=el.querySelector(`[name="characterName_${id}"]`).value.trim();if(!name)return;out.push({id,name,voiceSource:el.querySelector(`[name="voiceSource_${id}"]`).value,openaiVoice:el.querySelector(`[name="openaiVoice_${id}"]`)?.value||"alloy",voiceNote:el.querySelector(`[name="voiceNote_${id}"]`)?.value||"",customVoiceField:`customVoice_${id}`});});return out;}
+form.onsubmit=async e=>{e.preventDefault(); const fd=new FormData(form); fd.append("charactersJson",JSON.stringify(collectCharacters())); clips.forEach((c,i)=>{fd.set(`trimStart_${i}`,c.trimStart||0);fd.set(`trimEnd_${i}`,c.trimEnd||0);fd.set(`sceneVoice_${i}`,c.sceneVoice||"");fd.set(`subtitle_${i}`,c.subtitle||"");}); statusBox.textContent="Proje yükleniyor..."; try{const res=await fetch("/api/projects",{method:"POST",body:fd});const data=await res.json();if(!res.ok)throw new Error(data.error);currentProjectId=data.projectId;renderBtn.disabled=false;statusBox.textContent=JSON.stringify(data,null,2);loadProjects();}catch(err){statusBox.textContent="Hata: "+err.message;}};
+renderBtn.onclick=async()=>{if(!currentProjectId)return; renderBtn.disabled=true; statusBox.textContent="Render başladı. TTS ve FFmpeg çalışıyor..."; try{const res=await fetch(`/api/projects/${currentProjectId}/render`,{method:"POST"});const data=await res.json();if(!res.ok)throw new Error(data.error);outputUrl=data.outputUrl;downloadBtn.disabled=false;statusBox.textContent=JSON.stringify(data,null,2);loadProjects();}catch(err){statusBox.textContent="Render hatası: "+err.message;}finally{renderBtn.disabled=false;}};
+downloadBtn.onclick=()=>{if(outputUrl)window.open(outputUrl,"_blank");};
+async function loadProjects(){try{const r=await fetch("/api/projects");const d=await r.json();projectList.innerHTML=(d.projects||[]).map(p=>`<div class="project-item"><b>${p.name}</b><div class="small">${p.created_at}</div><span class="badge">${p.status}</span>${p.output_url?`<div><a style="color:#67e8f9" href="${p.output_url}" target="_blank">Finali aç</a></div>`:""}</div>`).join("")||"Proje yok.";}catch{projectList.innerHTML="Projeler alınamadı.";}}
+document.getElementById("refreshProjects").onclick=loadProjects; loadProjects();
 </script>
 </body>
 </html>
