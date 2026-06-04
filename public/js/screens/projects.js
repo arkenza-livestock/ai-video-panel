@@ -1,7 +1,51 @@
-import { qs } from "../core.js";
-export async function renderProjects(state){
-  const data=await fetch("/api/projects").then(r=>r.json()).catch(()=>({projects:[]}));
-  qs("#content").innerHTML=`<div class="card"><div class="cardHeader"><h2>Projeler</h2></div><div class="cardBody list">
-  ${(data.projects||[]).map(p=>`<div class="listItem"><b>${p.name}</b><div class="muted">${p.status} · ${p.created_at}</div>${p.output_url?`<a style="color:#67e8f9" href="${p.output_url}" target="_blank">Final MP4</a>`:""}</div>`).join("")||'<div class="muted">Proje yok.</div>'}
-  </div></div>`;
-}
+from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form
+from pydantic import BaseModel
+import json
+import uuid
+from typing import List, Optional
+
+router = APIRouter(prefix="/api/projects", tags=["projects"])
+
+# Pydantic Veri Doğrulama Şemaları (Validation)
+class ClipSchema(BaseModel):
+    id: str
+    index: int
+    originalName: str
+    trimStart: float = 0.0
+    trimEnd: float = 0.0
+    speed: float = 1.0
+
+class TimelineSchema(BaseModel):
+    clips: List[ClipSchema]
+
+class ProjectPayload(BaseModel):
+    id: Optional[str] = None
+    timeline: TimelineSchema
+
+@router.post("")
+async def save_project(projectJson: str = Form(...), videos: List[UploadFile] = File([])):
+    try:
+        # Gelen string veriyi JSON'a ve Pydantic modeline dönüştür
+        data = json.loads(projectJson)
+        project_data = ProjectPayload(**data)
+        
+        project_id = project_data.id or str(uuid.uuid4())
+        
+        # Disk üzerinde dosyaları kaydetme simülasyonu/mantığı
+        # Gerçek kodunuzda burası dosyaları /app/temp klasörüne yazar.
+        
+        return {"status": "saved", "projectId": project_id}
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Veri şeması hatası: {str(e)}")
+
+@router.post("/{project_id}/render")
+async def trigger_render(project_id: str):
+    try:
+        # Celery Worker'ı çağıran asenkron tetikleyici görevi
+        # Örnek: task = celery_app.send_task("tasks.run_ffmpeg_render", args=[project_id])
+        
+        # Sisteme benzersiz bir Celery Job ID fırlatıyoruz
+        mock_job_id = f"job-{str(uuid.uuid4())}"
+        return {"status": "queued", "jobId": mock_job_id}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"FFmpeg sıraya alınamadı: {str(e)}")
