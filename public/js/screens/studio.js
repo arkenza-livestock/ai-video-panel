@@ -24,8 +24,8 @@ export function renderStudio(state, navigate) {
     <div class="studioLayout">
       <section>
         <div class="card previewCard">
-          <div class="previewArea" id="previewArea" style="position: relative; background: #000; overflow: hidden; aspect-ratio: 16/9;">
-            <div class="previewHint" id="initialPreviewHint">Video seçilmedi</div>
+          <div class="previewArea" id="previewArea" style="position: relative; background: #020617; overflow: hidden; aspect-ratio: 16/9;">
+            <div class="previewHint" id="initialPreviewHint" style="z-index: 10;">Video seçilmedi</div>
           </div>
           <div class="controlBar">
             <button class="btn secondary" id="playPreview">▶</button>
@@ -48,7 +48,6 @@ export function renderStudio(state, navigate) {
   playerB = document.getElementById('player-buffer-b');
 
   if (playerA && playerB) {
-    // Proje ilk açıldığında veya yenilendiğinde bufferları temizle/sıfırla
     playerA.pause();
     playerB.pause();
     playerA.style.opacity = '0';
@@ -71,8 +70,9 @@ function bindTop(state, navigate) {
   qs("#playPreview").onclick = () => togglePreview(state);
   qs("#stopPreview").onclick = () => {
     sequencePlaying = false;
-    if (playerA) { playerA.pause(); playerA.currentTime = 0; }
-    if (playerB) { playerB.pause(); playerB.currentTime = 0; }
+    if (playerA) { playerA.pause(); playerA.currentTime = 0; playerA.style.opacity = "0"; }
+    if (playerB) { playerB.pause(); playerB.currentTime = 0; playerB.style.opacity = "0"; }
+    if (qs("#initialPreviewHint")) qs("#initialPreviewHint").style.display = "block";
     updateEngineStatusLabel(state);
   };
 }
@@ -191,7 +191,7 @@ function renderTimeline(state) {
   renderPreview(state, false);
 }
 
-// Siyah Ekran Problemini Çözen Donanımsal Geçiş Katmanı (Double Buffering Core)
+// SİYAH EKRANI ÖNLEYEN VE KARE GARANTİLİ ÇALIŞAN TAM MOTOR (Double Buffering Core V2)
 function renderPreview(state, autoplay = false) {
   const clips = state.project.timeline.clips;
   const c = clips[state.selectedClipIndex];
@@ -203,18 +203,16 @@ function renderPreview(state, autoplay = false) {
     return;
   }
 
-  // İlk ipucu yazısını gizle
   if (qs("#initialPreviewHint")) qs("#initialPreviewHint").style.display = "none";
 
-  // Havuz elementlerini DOM üzerindeki preview container'ına taşı (Eğer henüz taşınmadıysa)
   const previewArea = qs("#previewArea");
   if (playerA && playerA.parentElement !== previewArea) previewArea.appendChild(playerA);
   if (playerB && playerB.parentElement !== previewArea) previewArea.appendChild(playerB);
 
   // Aktif ve Pasif donanım katmanlarını belirle
   const currentVideoDom = activePlayerSign === 'A' ? playerA : playerB;
+  const passiveVideoDom = activePlayerSign === 'A' ? playerB : playerA;
 
-  // Sadece video kaynağı değiştiyse yükleme yap (Gereksiz yüklemeleri önleyip hızlandırır)
   const objectUrl = URL.createObjectURL(c.file);
   if (currentVideoDom.dataset.clipId !== c.id) {
     currentVideoDom.src = objectUrl;
@@ -224,33 +222,51 @@ function renderPreview(state, autoplay = false) {
 
   currentVideoDom.playbackRate = Number(c.speed || 1);
   currentVideoDom.muted = true;
-  currentVideoDom.style.opacity = "1";
-  currentVideoDom.style.zIndex = "2";
 
-  // Pasif olan katmanı görünmez yap ve z-index değerini düşür
-  const passiveVideoDom = activePlayerSign === 'A' ? playerB : playerA;
-  passiveVideoDom.style.opacity = "0";
-  passiveVideoDom.style.zIndex = "1";
+  // GEÇİŞLERDE SİYAH EKRAN KIRPMASINI ÖNLEYEN ANA SİHİRBAZ
+  if (autoplay) {
+    // 1. Yeni videoyu z-index 2 ile arka planda (hâlâ opacity 0) gizlice tetikliyoruz
+    currentVideoDom.style.zIndex = "2";
+    
+    // 2. Tarayıcı video dosyasından en az 1 kareyi çözüp ekrana çizdiği an tetiklenir
+    currentVideoDom.onplaying = () => {
+      // 3. İlk kare hazır! Şimdi güvenle gösterip, eski katmanı arkaya itip susturabiliriz.
+      currentVideoDom.style.opacity = "1";
+      passiveVideoDom.style.opacity = "0";
+      passiveVideoDom.style.zIndex = "1";
+      passiveVideoDom.pause();
+    };
 
-  // Sıradaki videoyu arka plandaki pasif elemente ÖNDEN yükle (Preload mekanizması)
+    currentVideoDom.play().catch(e => {
+      sequencePlaying = false;
+      console.log("Önizleme oynatılamadı: " + e.message);
+    });
+  } else {
+    // Kullanıcı timeline'dan manuel tıkladıysa doğrudan göster
+    currentVideoDom.style.opacity = "1";
+    currentVideoDom.style.zIndex = "2";
+    passiveVideoDom.style.opacity = "0";
+    passiveVideoDom.style.zIndex = "1";
+    passiveVideoDom.pause();
+  }
+
+  // Sıradaki videoyu önden yükle (Preload)
   preloadNextClip(state);
 
-  // Klip bittiğinde çalışacak olan pürüzsüz geçiş fonksiyonu
+  // Klip bittiğinde çalışacak olan mekanizma
   currentVideoDom.onended = () => {
     if (!sequencePlaying) return;
 
     const next = state.selectedClipIndex + 1;
     if (next < clips.length) {
-      // Katmanları takas et (A ise B, B ise A yap)
+      // Sadece katman işaretini değiştiriyoruz, takası yukarıdaki 'onplaying' olayı yönetecek!
       activePlayerSign = activePlayerSign === 'A' ? 'B' : 'A';
       state.selectedClipIndex = next;
 
-      // Güncellenen indekse göre önizlemeyi başlat
       renderTimeline(state);
       renderInspector(state);
-      renderPreview(state, true);
+      renderPreview(state, true); // Otomatik oynatma için true
     } else {
-      // Liste bitti, başa dön
       sequencePlaying = false;
       state.selectedClipIndex = 0;
       activePlayerSign = 'A';
@@ -260,17 +276,9 @@ function renderPreview(state, autoplay = false) {
     }
   };
 
-  if (autoplay) {
-    currentVideoDom.play().catch(e => {
-      sequencePlaying = false;
-      console.log("Önizleme oynatılamadı: " + e.message);
-    });
-  }
-
   updateEngineStatusLabel(state);
 }
 
-// Sıradaki klibi arka plandaki görünmeyen video elementine gizlice indiren yardımcı fonksiyon
 function preloadNextClip(state) {
   const clips = state.project.timeline.clips;
   const nextIndex = state.selectedClipIndex + 1;
@@ -284,7 +292,7 @@ function preloadNextClip(state) {
       passiveVideoDom.dataset.clipId = nextClip.id;
       passiveVideoDom.playbackRate = Number(nextClip.speed || 1);
       passiveVideoDom.muted = true;
-      passiveVideoDom.load(); // Arka planda indirme (buffer) başlar
+      passiveVideoDom.load();
     }
   }
 }
@@ -393,7 +401,6 @@ function renderInspector(state) {
     c.subtitle = qs("#subtitle").value;
     state.project.script.text = qs("#scriptText").value;
     
-    // Değişiklik anında videoyu baştan yükleme yapmadan sadece hızını güncelle
     const activeVideoDom = activePlayerSign === 'A' ? playerA : playerB;
     if (activeVideoDom) activeVideoDom.playbackRate = speed;
     
@@ -448,9 +455,8 @@ async function renderProject(state) {
   if (!state.currentProjectId) return alert("Önce kaydet.");
   try {
     const r = await fetch(`/api/projects/${state.currentProjectId}/render`, { method: "POST" }); const d = await r.json(); if (!r.ok) throw new Error(d.error);
-    // Donanım katmanlarını kapat ve nihai render çıktısını ekrana bas
-    if(playerA) playerA.style.opacity = "0";
-    if(playerB) playerB.style.opacity = "0";
+    if(playerA) { playerA.style.opacity = "0"; playerA.pause(); }
+    if(playerB) { playerB.style.opacity = "0"; playerB.pause(); }
     qs("#previewArea").innerHTML = `<video id="mainPreview" src="${d.outputUrl}" playsinline controls style="width:100%;height:100%;object-fit:contain;z-index:5;position:absolute;top:0;left:0;"></video>`; alert("Render tamamlandı.");
   }
   catch (e) { alert("Render hatası: " + e.message) }
